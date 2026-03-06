@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>中药展示页</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", Arial, sans-serif;
+      background: #f5f7fb;
+      color: #222;
+    }
+    .container {
+      width: 1400px;
+      margin: 24px auto;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .back {
+      color: #1677ff;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .page-title {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0;
+    }
+    .sub {
+      font-size: 14px;
+      color: #666;
+      margin-top: 6px;
+    }
+    .panel {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      padding: 18px 20px;
+      margin-bottom: 16px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      gap: 16px;
+    }
+    .left, .right {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .image-box {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: #f2f4f8;
+      border: 1px solid #edf0f3;
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      cursor: pointer;
+      user-select: none;
+    }
+    .image-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .placeholder {
+      color: #888;
+      font-size: 14px;
+    }
+    .image-tip {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+    }
+    .persona-box {
+      background: #fafbfc;
+      border: 1px solid #eef0f3;
+      border-radius: 12px;
+      padding: 12px 14px;
+      line-height: 1.8;
+      font-size: 14px;
+    }
+    .info-title {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .tag {
+      background: #eef4ff;
+      color: #245bdb;
+      border: 1px solid #d9e7ff;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 14px;
+    }
+    .item {
+      background: #fafbfc;
+      border: 1px solid #eef0f3;
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+    .item.full {
+      grid-column: span 2;
+    }
+    .label {
+      font-size: 12px;
+      color: #777;
+      margin-bottom: 6px;
+    }
+    .value {
+      font-size: 14px;
+      line-height: 1.7;
+      color: #222;
+      word-break: break-word;
+    }
+    .narration {
+      line-height: 1.95;
+      font-size: 15px;
+      color: #333;
+      white-space: pre-wrap;
+    }
+    audio {
+      width: 100%;
+    }
+    .status {
+      color: #666;
+      font-size: 14px;
+      min-height: 22px;
+    }
+    .error {
+      color: #c0392b;
+      font-size: 14px;
+      min-height: 22px;
+    }
+    .audio-extra {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #666;
+      line-height: 1.8;
+    }
+    .phrase-list {
+      margin-top: 8px;
+      padding-left: 18px;
+    }
+    .phrase-list li {
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div>
+        <h1 class="page-title">中药拟人化展示页</h1>
+        <div class="sub">中药卡片 · Persona 图像 · 自我介绍语音 · 点击图片轮流播放口头禅</div>
+      </div>
+      <a class="back" href="index.html">← 返回首页</a>
+    </div>
+
+    <div class="panel">
+      <div id="status" class="status">正在加载...</div>
+      <div id="error" class="error"></div>
+    </div>
+
+    <div class="grid">
+      <div class="left">
+        <div class="panel">
+          <div class="section-title">拟人化角色图像</div>
+          <div id="imageBox" class="image-box">
+            <div class="placeholder">暂无图像</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="section-title">角色设定</div>
+          <div id="personaBox" class="persona-box">暂无 Persona 信息</div>
+        </div>
+
+        <div class="panel">
+          <div class="section-title">语音播放</div>
+          <audio id="audioPlayer" controls></audio>
+          <div id="audioInfo" class="sub" style="margin-top:10px;">暂无音频</div>
+
+          <div class="audio-extra">
+            <div><b>点击人物图片：</b>轮流播放口头禅（每次点击播放一条）</div>
+            <ol id="phraseList" class="phrase-list"></ol>
+          </div>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="panel">
+          <div id="herbName" class="info-title">-</div>
+          <div id="tagRow" class="tag-row"></div>
+
+          <div class="info-grid">
+            <div class="item">
+              <div class="label">性味</div>
+              <div id="tasteVal" class="value">-</div>
+            </div>
+            <div class="item">
+              <div class="label">归经</div>
+              <div id="meridianVal" class="value">-</div>
+            </div>
+            <div class="item">
+              <div class="label">用量</div>
+              <div id="dosageVal" class="value">-</div>
+            </div>
+            <div class="item">
+              <div class="label">风险等级</div>
+              <div id="riskVal" class="value">-</div>
+            </div>
+            <div class="item full">
+              <div class="label">功效</div>
+              <div id="efficacyVal" class="value">-</div>
+            </div>
+            <div class="item full">
+              <div class="label">主治 / 相关病症</div>
+              <div id="diseaseVal" class="value">-</div>
+            </div>
+            <div class="item full">
+              <div class="label">注意事项</div>
+              <div id="precautionVal" class="value">-</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="section-title">人格化自我介绍</div>
+          <div id="narrationText" class="narration">暂无内容</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:8010";
+
+    // 口头禅循环播放状态
+    let catchphraseAudioList = [];
+    let catchphraseTextList = [];
+    let catchphraseIndex = 0;
+
+    function getQueryName() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("name") || "";
+    }
+
+    function toAssetUrl(path) {
+      if (!path) return "";
+      if (path.startsWith("assets/")) {
+        return `${API_BASE}/${path}`;
+      }
+      return path;
+    }
+
+    function setStatus(text) {
+      document.getElementById("status").innerText = text || "";
+    }
+
+    function setError(text) {
+      document.getElementById("error").innerText = text || "";
+    }
+
+    function renderCard(card) {
+      document.getElementById("herbName").innerText = card?.name || "-";
+      document.getElementById("tasteVal").innerText = card?.taste || "-";
+      document.getElementById("meridianVal").innerText = card?.meridian || "-";
+      document.getElementById("dosageVal").innerText = card?.dosage || "-";
+      document.getElementById("riskVal").innerText = card?.risk_level || "-";
+      document.getElementById("efficacyVal").innerText = (card?.efficacy || []).join("、") || "-";
+      document.getElementById("diseaseVal").innerText = (card?.diseases || []).join("、") || "-";
+      document.getElementById("precautionVal").innerText = card?.precaution || "-";
+
+      const tagRow = document.getElementById("tagRow");
+      tagRow.innerHTML = "";
+      const tags = [];
+      if (card?.taste) tags.push(`性味：${card.taste}`);
+      if (card?.meridian) tags.push(`归经：${card.meridian}`);
+      if (card?.categories?.length) tags.push(`类别：${card.categories.join("、")}`);
+      if (card?.risk_level) tags.push(card.risk_level);
+
+      tags.forEach(t => {
+        const span = document.createElement("span");
+        span.className = "tag";
+        span.innerText = t;
+        tagRow.appendChild(span);
+      });
+    }
+
+    function renderNarration(narration) {
+      document.getElementById("narrationText").innerText = narration?.text || "暂无内容";
+    }
+
+    function renderPersona(persona) {
+      const p = persona?.persona || {};
+      document.getElementById("personaBox").innerHTML = `
+        <div><b>角色称号：</b>${p.role_title || "-"}</div>
+        <div><b>年龄风格：</b>${p.age_style || "-"}</div>
+        <div><b>性格标签：</b>${(p.personality_tags || []).join("、") || "-"}</div>
+        <div><b>外观标签：</b>${(p.appearance_tags || []).join("、") || "-"}</div>
+        <div><b>口头禅：</b>${(p.catchphrases || []).join(" / ") || "-"}</div>
+      `;
+    }
+
+    function renderImage(image) {
+      const box = document.getElementById("imageBox");
+      box.innerHTML = "";
+
+      if (!image?.ok || !image?.image_path) {
+        box.innerHTML = `<div class="placeholder">暂无图像</div>`;
+        return;
+      }
+
+      const img = document.createElement("img");
+      img.src = toAssetUrl(image.image_path);
+      img.alt = "persona image";
+      box.appendChild(img);
+
+      const tip = document.createElement("div");
+      tip.className = "image-tip";
+      tip.innerText = "点击人物说话";
+      box.appendChild(tip);
+    }
+
+    function renderAudio(tts) {
+      const audio = document.getElementById("audioPlayer");
+      const info = document.getElementById("audioInfo");
+      const phraseList = document.getElementById("phraseList");
+
+      audio.removeAttribute("src");
+      audio.load();
+
+      catchphraseAudioList = [];
+      catchphraseTextList = [];
+      catchphraseIndex = 0;
+      phraseList.innerHTML = "";
+
+      if (!tts?.ok) {
+        info.innerText = "暂无音频";
+        return;
+      }
+
+      // 自我介绍语音
+      const introAudioPath =
+        tts?.intro_audio ||
+        tts?.audio_path ||
+        tts?.tts?.audio_path ||
+        "";
+
+      if (introAudioPath) {
+        audio.src = toAssetUrl(introAudioPath);
+        info.innerText = `当前默认播放：自我介绍语音`;
+      } else {
+        info.innerText = "暂无自我介绍语音";
+      }
+
+      // 口头禅语音列表
+      const items = tts?.catchphrase_items || [];
+      items.forEach(item => {
+        if (item?.audio_path) {
+          catchphraseAudioList.push(item.audio_path);
+          catchphraseTextList.push(item.text || "");
+        }
+      });
+
+      catchphraseTextList.forEach((text, idx) => {
+        const li = document.createElement("li");
+        li.innerText = `口头禅${idx + 1}：${text}`;
+        phraseList.appendChild(li);
+      });
+    }
+
+    function bindImageClickPlay() {
+      const imageBox = document.getElementById("imageBox");
+      const audio = document.getElementById("audioPlayer");
+      const info = document.getElementById("audioInfo");
+
+      imageBox.onclick = function() {
+        if (!catchphraseAudioList.length) {
+          info.innerText = "暂无口头禅语音可播放";
+          return;
+        }
+
+        const currentAudioPath = catchphraseAudioList[catchphraseIndex];
+        const currentText = catchphraseTextList[catchphraseIndex] || `口头禅${catchphraseIndex + 1}`;
+
+        audio.src = toAssetUrl(currentAudioPath);
+        audio.play().catch(() => {});
+        info.innerText = `正在播放：${currentText}`;
+
+        catchphraseIndex += 1;
+        if (catchphraseIndex >= catchphraseAudioList.length) {
+          catchphraseIndex = 0;
+        }
+      };
+    }
+
+    async function loadHerb() {
+      const herbName = getQueryName();
+      if (!herbName) {
+        setError("未检测到中药名称参数");
+        setStatus("");
+        return;
+      }
+
+      setStatus(`正在加载 ${herbName} ...`);
+      setError("");
+
+      try {
+        const resp = await fetch(`${API_BASE}/api/herb_full`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: herbName })
+        });
+
+        const data = await resp.json();
+
+        if (!data?.ok) {
+          setError(data?.error || data?.reason || "请求失败");
+          setStatus("加载失败");
+          return;
+        }
+
+        renderCard(data.card || {});
+        renderNarration(data.narration || {});
+        renderPersona(data.persona || {});
+        renderAudio(data.tts || {});
+        renderImage(data.image || {});
+        bindImageClickPlay();
+
+        setStatus(`已完成 ${herbName} 的展示`);
+      } catch (err) {
+        setError("请求异常：" + err.message);
+        setStatus("加载失败");
+      }
+    }
+
+    loadHerb();
+  </script>
+</body>
+</html>

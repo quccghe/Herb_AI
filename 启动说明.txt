@@ -1,0 +1,2 @@
+uvicorn mcp_server.app:app --port 8001
+python master_agent.py --vec_dir data\rag_out_vec --mcp http://127.0.0.1:8001

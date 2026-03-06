@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>中医知识智能体</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", Arial, sans-serif;
+      background: linear-gradient(180deg, #f7f9fc 0%, #eef3fb 100%);
+      color: #222;
+    }
+    .wrap {
+      width: 1100px;
+      margin: 0 auto;
+      padding: 80px 20px;
+    }
+    .hero {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .hero h1 {
+      font-size: 40px;
+      margin: 0 0 16px;
+    }
+    .hero p {
+      margin: 0;
+      color: #666;
+      font-size: 16px;
+      line-height: 1.8;
+    }
+    .search-box {
+      width: 760px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(18, 52, 116, 0.08);
+      padding: 24px;
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    input {
+      flex: 1;
+      height: 52px;
+      border: 1px solid #d9e1ef;
+      border-radius: 12px;
+      padding: 0 16px;
+      font-size: 16px;
+      outline: none;
+    }
+    button {
+      height: 52px;
+      padding: 0 24px;
+      border: none;
+      border-radius: 12px;
+      background: #1677ff;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover { opacity: 0.94; }
+    .hint {
+      margin-top: 14px;
+      color: #666;
+      font-size: 14px;
+    }
+    .tags {
+      margin-top: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .tag {
+      background: #eef4ff;
+      color: #245bdb;
+      border: 1px solid #d9e7ff;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .status {
+      margin-top: 16px;
+      min-height: 24px;
+      color: #666;
+      font-size: 14px;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 48px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 24px rgba(18, 52, 116, 0.06);
+    }
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+    .card p {
+      margin: 0;
+      line-height: 1.8;
+      color: #555;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>中医知识智能体系统</h1>
+      <p>支持中药查询、方剂查询、拟人化展示、语音讲解与知识检索。<br>输入中药或方剂名称，系统将自动识别并跳转到对应页面。</p>
+    </div>
+
+    <div class="search-box">
+      <div class="row">
+        <input id="queryInput" placeholder="请输入中药或方剂名称，例如：当归、川芎、四君子汤" />
+        <button onclick="searchQuery()">开始查询</button>
+      </div>
+      <div class="hint">中药将进入中药展示页；方剂将进入方剂讲解页。</div>
+      <div class="tags">
+        <span class="tag" onclick="quickFill('当归')">当归</span>
+        <span class="tag" onclick="quickFill('川芎')">川芎</span>
+        <span class="tag" onclick="quickFill('甘草')">甘草</span>
+        <span class="tag" onclick="quickFill('四君子汤')">四君子汤</span>
+        <span class="tag" onclick="quickFill('桂枝汤')">桂枝汤</span>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <h3>中药展示</h3>
+        <p>展示中药卡片、拟人化角色图像、人格化讲解文本，以及自我介绍语音。</p>
+      </div>
+      <div class="card">
+        <h3>方剂讲解</h3>
+        <p>基于方剂 RAG 知识库生成结构化说明，适合展示方剂组成、功效与主治。</p>
+      </div>
+      <div class="card">
+        <h3>智能路由</h3>
+        <p>输入后先经过 Planner 判断是中药还是方剂，再跳转到对应的专属页面。</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:8010";
+
+    function quickFill(text) {
+      document.getElementById("queryInput").value = text;
+      searchQuery();
+    }
+
+    async function searchQuery() {
+      const q = document.getElementById("queryInput").value.trim();
+      const status = document.getElementById("status");
+      if (!q) {
+        status.innerText = "请输入查询内容。";
+        return;
+      }
+
+      status.innerText = "正在识别查询类型...";
+      try {
+        const resp = await fetch(`${API_BASE}/api/plan`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: q })
+        });
+
+        const data = await resp.json();
+
+        if (data.intent === "formula") {
+          status.innerText = "已识别为方剂，正在跳转...";
+          window.location.href = `formula_page.html?name=${encodeURIComponent(q)}`;
+        } else {
+          status.innerText = "已识别为中药，正在跳转...";
+          window.location.href = `herb_page.html?name=${encodeURIComponent(q)}`;
+        }
+      } catch (err) {
+        status.innerText = "请求失败：" + err.message;
+      }
+    }
+
+    document.getElementById("queryInput").addEventListener("keydown", function(e) {
+      if (e.key === "Enter") searchQuery();
+    });
+  </script>
+</body>
+</html>

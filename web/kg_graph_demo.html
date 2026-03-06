@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>中药知识图谱探索系统</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+
+<style>
+body{
+font-family:Microsoft YaHei;
+margin:0;
+background:#f5f7fb;
+}
+
+.container{
+width:1400px;
+margin:auto;
+}
+
+.toolbar{
+background:white;
+padding:15px;
+margin-top:20px;
+border-radius:10px;
+}
+
+.toolbar input{
+height:34px;
+padding:0 10px;
+}
+
+.toolbar button{
+height:34px;
+background:#1677ff;
+border:none;
+color:white;
+padding:0 14px;
+border-radius:6px;
+cursor:pointer;
+}
+
+.main{
+display:flex;
+margin-top:15px;
+gap:15px;
+}
+
+.chart{
+flex:1;
+height:720px;
+background:white;
+border-radius:10px;
+}
+
+.panel{
+width:320px;
+background:white;
+border-radius:10px;
+padding:15px;
+}
+
+.panel h3{
+margin-top:0;
+}
+
+.related{
+margin-top:10px;
+}
+
+.related span{
+display:inline-block;
+background:#eef4ff;
+padding:5px 8px;
+margin:3px;
+border-radius:6px;
+font-size:13px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="toolbar">
+
+中药：
+<input id="herbInput" value="川芎">
+<button onclick="loadGraph()">查询</button>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+
+路径查询：
+<input id="sourceInput" value="川芎">
+→
+<input id="targetInput" value="当归">
+
+<button onclick="loadPath()">查询路径</button>
+
+</div>
+
+<div class="main">
+
+<div id="chart" class="chart"></div>
+
+<div class="panel">
+
+<h3>节点信息</h3>
+
+<div id="nodeName">-</div>
+<div id="nodeType">-</div>
+
+<h3>属性</h3>
+<div id="props"></div>
+
+<h3>相关中药</h3>
+<div id="related" class="related"></div>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const chart = echarts.init(document.getElementById("chart"));
+
+async function loadGraph(){
+
+let name=document.getElementById("herbInput").value;
+
+let res=await fetch("http://127.0.0.1:8001/tools/kg_subgraph",{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({name:name})
+});
+
+let data=await res.json();
+
+renderGraph(data);
+
+}
+
+async function loadPath(){
+
+let s=document.getElementById("sourceInput").value;
+let t=document.getElementById("targetInput").value;
+
+let res=await fetch("http://127.0.0.1:8001/tools/kg_relation_paths",{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({source:s,target:t})
+});
+
+let data=await res.json();
+
+if(!data.paths.length) return;
+
+let path=data.paths[0];
+
+renderGraph({
+nodes:path.nodes,
+edges:path.edges
+});
+
+}
+
+function renderGraph(graph){
+
+let nodes=graph.nodes.map(n=>({
+id:n.id,
+name:n.label,
+value:n.label,
+symbolSize:n.type==="Medicine"?60:30,
+itemStyle:{color:getColor(n.type)},
+raw:n
+}));
+
+let links=graph.edges.map(e=>({
+source:e.source,
+target:e.target,
+label:{show:true,formatter:e.type}
+}));
+
+chart.setOption({
+series:[{
+type:"graph",
+layout:"force",
+data:nodes,
+links:links,
+roam:true,
+force:{repulsion:250},
+label:{show:true}
+}]
+});
+
+chart.on("click",nodeClick);
+
+}
+
+function getColor(type){
+
+if(type==="Medicine") return "#d14a61";
+if(type==="Disease") return "#91cc75";
+if(type==="Efficacy") return "#5470c6";
+if(type==="Meridian") return "#fac858";
+if(type==="TasteProperty") return "#73c0de";
+if(type==="Category") return "#9a60b4";
+
+return "#999";
+
+}
+
+function nodeClick(p){
+
+if(p.dataType!=="node") return;
+
+let n=p.data.raw;
+
+document.getElementById("nodeName").innerText=n.label;
+document.getElementById("nodeType").innerText=n.type;
+
+let props=document.getElementById("props");
+props.innerHTML="";
+
+for(let k in n.properties){
+
+let div=document.createElement("div");
+div.innerText=k+" : "+n.properties[k];
+props.appendChild(div);
+
+}
+
+if(n.type==="Medicine"){
+loadGraphByName(n.label);
+}
+
+}
+
+async function loadGraphByName(name){
+
+let res=await fetch("http://127.0.0.1:8001/tools/kg_subgraph",{
+method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({name:name})
+});
+
+let data=await res.json();
+
+renderGraph(data);
+
+}
+
+loadGraph();
+
+</script>
+
+</body>
+</html>
