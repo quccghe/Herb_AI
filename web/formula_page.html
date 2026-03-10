@@ -3,471 +3,406 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>中药展示页</title>
+  <title>方剂结构化讲解页</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
   <style>
     * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: "Microsoft YaHei", Arial, sans-serif;
-      background: #f5f7fb;
-      color: #222;
-    }
-    .container {
-      width: 1400px;
-      margin: 24px auto;
-    }
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-    .back {
-      color: #1677ff;
-      text-decoration: none;
-      font-size: 14px;
-    }
-    .page-title {
-      font-size: 28px;
-      font-weight: 700;
-      margin: 0;
-    }
-    .sub {
-      font-size: 14px;
-      color: #666;
-      margin-top: 6px;
-    }
-    .panel {
-      background: #fff;
-      border-radius: 14px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-      padding: 18px 20px;
-      margin-bottom: 16px;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: 400px 1fr;
-      gap: 16px;
-    }
-    .left, .right {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .section-title {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 12px;
-    }
-    .image-box {
-      width: 100%;
-      aspect-ratio: 1 / 1;
-      background: #f2f4f8;
-      border: 1px solid #edf0f3;
-      border-radius: 14px;
-      overflow: hidden;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-      cursor: pointer;
-      user-select: none;
-    }
-    .image-box img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .placeholder {
-      color: #888;
-      font-size: 14px;
-    }
-    .image-tip {
-      position: absolute;
-      right: 12px;
-      bottom: 12px;
-      background: rgba(0,0,0,0.55);
-      color: #fff;
-      font-size: 12px;
-      padding: 6px 10px;
-      border-radius: 999px;
-    }
-    .persona-box {
-      background: #fafbfc;
-      border: 1px solid #eef0f3;
-      border-radius: 12px;
-      padding: 12px 14px;
-      line-height: 1.8;
-      font-size: 14px;
-    }
-    .info-title {
-      font-size: 26px;
-      font-weight: 700;
-      margin-bottom: 10px;
-    }
-    .tag-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 14px;
-    }
-    .tag {
-      background: #eef4ff;
-      color: #245bdb;
-      border: 1px solid #d9e7ff;
-      border-radius: 999px;
-      padding: 5px 10px;
-      font-size: 12px;
-    }
-    .info-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px 14px;
-    }
-    .item {
-      background: #fafbfc;
-      border: 1px solid #eef0f3;
-      border-radius: 12px;
-      padding: 12px 14px;
-    }
-    .item.full {
-      grid-column: span 2;
-    }
-    .label {
-      font-size: 12px;
-      color: #777;
-      margin-bottom: 6px;
-    }
-    .value {
-      font-size: 14px;
-      line-height: 1.7;
-      color: #222;
-      word-break: break-word;
-    }
-    .narration {
-      line-height: 1.95;
-      font-size: 15px;
-      color: #333;
-      white-space: pre-wrap;
-    }
-    audio {
-      width: 100%;
-    }
-    .status {
-      color: #666;
-      font-size: 14px;
-      min-height: 22px;
-    }
-    .error {
-      color: #c0392b;
-      font-size: 14px;
-      min-height: 22px;
-    }
-    .audio-extra {
-      margin-top: 10px;
-      font-size: 13px;
-      color: #666;
-      line-height: 1.8;
-    }
-    .phrase-list {
-      margin-top: 8px;
-      padding-left: 18px;
-    }
-    .phrase-list li {
-      margin-bottom: 4px;
-    }
+    body { margin: 0; font-family: "Microsoft YaHei", Arial, sans-serif; background: #f4f7fb; color: #1f2a37; }
+    .container { width: 1280px; max-width: calc(100vw - 40px); margin: 20px auto 36px; }
+    .topbar { display:flex; justify-content:space-between; align-items:flex-start; gap: 16px; margin-bottom:14px; }
+    .title { margin: 0; font-size: 30px; }
+    .sub { color:#667085; margin-top: 6px; line-height: 1.7; }
+    .back { color:#1677ff; text-decoration:none; font-size:14px; margin-top: 10px; }
+
+    .panel { background:#fff; border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,.06); padding:16px 18px; margin-bottom:14px; }
+    .status { color:#344054; min-height:24px; }
+    .error { color:#b42318; min-height:24px; }
+    .ok { color:#027a48; }
+    .warn { color:#b54708; }
+
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+    .item { background:#fafbfc; border:1px solid #e9edf2; border-radius:12px; padding:12px; }
+    .full { grid-column: span 2; }
+    .label { font-size:12px; color:#667085; margin-bottom:6px; }
+    .value { line-height:1.85; white-space:pre-wrap; }
+
+    .chips { margin-top: 8px; }
+    .chip { display:inline-block; margin:4px 8px 4px 0; padding:4px 10px; border-radius:999px; background:#eef4ff; color:#1d4ed8; cursor:pointer; border:1px solid #dbe7ff; }
+
+    .viz-grid { display:grid; grid-template-columns: 2fr 1fr; gap:14px; }
+    #compatGraph, #ratioChart { height: 460px; }
+    .viz-fallback { color:#667085; font-size:13px; padding:8px 4px; }
+
+    .story-wrap { background: linear-gradient(135deg,#fff7ed,#eff6ff); border:1px solid #fde6c8; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="topbar">
       <div>
-        <h1 class="page-title">中药拟人化展示页</h1>
-        <div class="sub">中药卡片 · Persona 图像 · 自我介绍语音 · 点击图片轮流播放口头禅</div>
+        <h1 class="title">方剂结构化讲解页</h1>
+        <div class="sub">来源 / 组成 / 君臣佐使 / 功效主治 / 适用证候 / 加减应用 / 现代研究 / 配伍故事</div>
       </div>
       <a class="back" href="index.html">← 返回首页</a>
     </div>
 
     <div class="panel">
       <div id="status" class="status">正在加载...</div>
+      <div id="conn" class="status"></div>
       <div id="error" class="error"></div>
     </div>
 
-    <div class="grid">
-      <div class="left">
-        <div class="panel">
-          <div class="section-title">拟人化角色图像</div>
-          <div id="imageBox" class="image-box">
-            <div class="placeholder">暂无图像</div>
-          </div>
+    <div class="panel">
+      <h2 id="formulaName" style="margin:0 0 8px 0;">-</h2>
+      <div id="summary" class="value">-</div>
+      <div id="herbLinks" class="chips"></div>
+    </div>
+
+    <div class="panel">
+      <div class="grid">
+        <div class="item"><div class="label">1️⃣ 方剂来源</div><div id="source" class="value">-</div></div>
+        <div class="item"><div class="label">2️⃣ 方剂组成</div><div id="composition" class="value">-</div></div>
+        <div class="item"><div class="label">3️⃣ 君臣佐使分析</div><div id="roles" class="value">-</div></div>
+        <div class="item"><div class="label">4️⃣ 功效与主治</div><div id="efficacy" class="value">-</div></div>
+        <div class="item"><div class="label">5️⃣ 适用证候</div><div id="syndrome" class="value">-</div></div>
+        <div class="item"><div class="label">6️⃣ 加减应用</div><div id="mods" class="value">-</div></div>
+        <div class="item full"><div class="label">7️⃣ 现代研究</div><div id="modern" class="value">-</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="viz-grid">
+        <div class="item">
+          <div class="label">方剂配伍图（方剂居中，药物环绕）</div>
+          <div id="compatGraph"></div>
+          <div id="graphFallback" class="viz-fallback"></div>
         </div>
-
-        <div class="panel">
-          <div class="section-title">角色设定</div>
-          <div id="personaBox" class="persona-box">暂无 Persona 信息</div>
-        </div>
-
-        <div class="panel">
-          <div class="section-title">语音播放</div>
-          <audio id="audioPlayer" controls></audio>
-          <div id="audioInfo" class="sub" style="margin-top:10px;">暂无音频</div>
-
-          <div class="audio-extra">
-            <div><b>点击人物图片：</b>轮流播放口头禅（每次点击播放一条）</div>
-            <ol id="phraseList" class="phrase-list"></ol>
-          </div>
+        <div class="item">
+          <div class="label">剂量与组成比例</div>
+          <div id="ratioChart"></div>
+          <div id="pieFallback" class="viz-fallback"></div>
         </div>
       </div>
+    </div>
 
-      <div class="right">
-        <div class="panel">
-          <div id="herbName" class="info-title">-</div>
-          <div id="tagRow" class="tag-row"></div>
-
-          <div class="info-grid">
-            <div class="item">
-              <div class="label">性味</div>
-              <div id="tasteVal" class="value">-</div>
-            </div>
-            <div class="item">
-              <div class="label">归经</div>
-              <div id="meridianVal" class="value">-</div>
-            </div>
-            <div class="item">
-              <div class="label">用量</div>
-              <div id="dosageVal" class="value">-</div>
-            </div>
-            <div class="item">
-              <div class="label">风险等级</div>
-              <div id="riskVal" class="value">-</div>
-            </div>
-            <div class="item full">
-              <div class="label">功效</div>
-              <div id="efficacyVal" class="value">-</div>
-            </div>
-            <div class="item full">
-              <div class="label">主治 / 相关病症</div>
-              <div id="diseaseVal" class="value">-</div>
-            </div>
-            <div class="item full">
-              <div class="label">注意事项</div>
-              <div id="precautionVal" class="value">-</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="section-title">人格化自我介绍</div>
-          <div id="narrationText" class="narration">暂无内容</div>
-        </div>
+    <div class="panel story-wrap">
+      <div class="grid">
+        <div class="item"><div class="label">方剂配伍小故事（君臣佐使）</div><div id="roleStory" class="value">-</div></div>
+        <div class="item"><div class="label">方剂故事化讲解</div><div id="formulaStory" class="value">-</div>
+          <div id="storySource" class="viz-fallback"></div></div>
       </div>
     </div>
   </div>
 
   <script>
     const API_BASE = "http://127.0.0.1:8010";
-
-    // 口头禅循环播放状态
-    let catchphraseAudioList = [];
-    let catchphraseTextList = [];
-    let catchphraseIndex = 0;
+    const MCP_BASE = "http://127.0.0.1:8001";
 
     function getQueryName() {
-      const params = new URLSearchParams(window.location.search);
-      return params.get("name") || "";
+      return new URLSearchParams(window.location.search).get("name") || "";
+    }
+    function setText(id, val) {
+      document.getElementById(id).innerText = (val && String(val).trim()) ? String(val) : "-";
+    }
+    function setStatus(s) { document.getElementById("status").innerText = s || ""; }
+    function setError(s) { document.getElementById("error").innerText = s || ""; }
+    function setConn(s, cls = "") {
+      const el = document.getElementById("conn");
+      el.className = `status ${cls}`.trim();
+      el.innerText = s || "";
     }
 
-    function toAssetUrl(path) {
-      if (!path) return "";
-      if (path.startsWith("assets/")) {
-        return `${API_BASE}/${path}`;
+    async function fetchJsonWithTimeout(url, options = {}, timeoutMs = 12000) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        const resp = await fetch(url, { ...options, signal: ctrl.signal });
+        const text = await resp.text();
+        let data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
+        return { ok: resp.ok, status: resp.status, data };
+      } finally {
+        clearTimeout(t);
       }
-      return path;
     }
 
-    function setStatus(text) {
-      document.getElementById("status").innerText = text || "";
+    async function checkConnections() {
+      const [apiHealth, mcpHealth] = await Promise.all([
+        fetchJsonWithTimeout(`${API_BASE}/health`, {}, 5000).catch(e => ({ ok:false, data:{error:e.message} })),
+        fetchJsonWithTimeout(`${MCP_BASE}/health`, {}, 5000).catch(e => ({ ok:false, data:{error:e.message} })),
+      ]);
+
+      const apiMsg = apiHealth.ok ? "API:可用" : "API:不可用";
+      const mcpMsg = mcpHealth.ok ? "MCP:可用" : "MCP:不可用";
+      const cls = (apiHealth.ok && mcpHealth.ok) ? "ok" : "warn";
+      setConn(`${apiMsg} | ${mcpMsg}`, cls);
     }
 
-    function setError(text) {
-      document.getElementById("error").innerText = text || "";
+    function numFromDose(dose) {
+      const m = String(dose || "").match(/(\d+(?:\.\d+)?)/);
+      return m ? Number(m[1]) : 1;
     }
 
-    function renderCard(card) {
-      document.getElementById("herbName").innerText = card?.name || "-";
-      document.getElementById("tasteVal").innerText = card?.taste || "-";
-      document.getElementById("meridianVal").innerText = card?.meridian || "-";
-      document.getElementById("dosageVal").innerText = card?.dosage || "-";
-      document.getElementById("riskVal").innerText = card?.risk_level || "-";
-      document.getElementById("efficacyVal").innerText = (card?.efficacy || []).join("、") || "-";
-      document.getElementById("diseaseVal").innerText = (card?.diseases || []).join("、") || "-";
-      document.getElementById("precautionVal").innerText = card?.precaution || "-";
-
-      const tagRow = document.getElementById("tagRow");
-      tagRow.innerHTML = "";
-      const tags = [];
-      if (card?.taste) tags.push(`性味：${card.taste}`);
-      if (card?.meridian) tags.push(`归经：${card.meridian}`);
-      if (card?.categories?.length) tags.push(`类别：${card.categories.join("、")}`);
-      if (card?.risk_level) tags.push(card.risk_level);
-
-      tags.forEach(t => {
-        const span = document.createElement("span");
-        span.className = "tag";
-        span.innerText = t;
-        tagRow.appendChild(span);
-      });
+    function hasUsefulFormulaData(d) {
+      if (!d || typeof d !== "object") return false;
+      const fields = [
+        d.source,
+        d.efficacy_and_indications,
+        d.applicable_syndromes,
+        d.modifications,
+        d.modern_research,
+        d.role_story,
+        d.formula_story,
+      ];
+      const textOk = fields.some(x => x && String(x).trim() && String(x).trim() !== "-");
+      const compItemsOk = Array.isArray(d.composition_items) && d.composition_items.some(x => x && x.name);
+      const compTextOk = Array.isArray(d.composition) && d.composition.length > 0;
+      return textOk || compItemsOk || compTextOk;
     }
 
-    function renderNarration(narration) {
-      document.getElementById("narrationText").innerText = narration?.text || "暂无内容";
+    async function getMcpFormulaFallback(name) {
+      return fetchJsonWithTimeout(`${MCP_BASE}/tools/formula_fallback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name })
+      }, 10000).catch(e => ({ ok:false, data:{error:e.message} }));
     }
 
-    function renderPersona(persona) {
-      const p = persona?.persona || {};
-      document.getElementById("personaBox").innerHTML = `
-        <div><b>角色称号：</b>${p.role_title || "-"}</div>
-        <div><b>年龄风格：</b>${p.age_style || "-"}</div>
-        <div><b>性格标签：</b>${(p.personality_tags || []).join("、") || "-"}</div>
-        <div><b>外观标签：</b>${(p.appearance_tags || []).join("、") || "-"}</div>
-        <div><b>口头禅：</b>${(p.catchphrases || []).join(" / ") || "-"}</div>
-      `;
+    async function getMcpFormulaCardLLM(name) {
+      return fetchJsonWithTimeout(`${MCP_BASE}/tools/formula_card_llm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, topk: 12, min_rag_score: 0.28 })
+      }, 30000).catch(e => ({ ok:false, data:{error:e.message} }));
     }
 
-    function renderImage(image) {
-      const box = document.getElementById("imageBox");
+    function mergeFormulaData(primary, fallback) {
+      if (!primary || typeof primary !== "object") return fallback || {};
+      if (!fallback || typeof fallback !== "object") return primary;
+      const merged = { ...fallback, ...primary };
+      const keys = [
+        "summary", "source", "jun_chen_zuo_shi_analysis", "efficacy_and_indications",
+        "applicable_syndromes", "modifications", "modern_research", "role_story", "formula_story"
+      ];
+      for (const k of keys) {
+        const v = primary[k];
+        if (!v || !String(v).trim()) merged[k] = fallback[k] || "";
+      }
+      if (!(Array.isArray(primary.composition_items) && primary.composition_items.length)) {
+        merged.composition_items = Array.isArray(fallback.composition_items) ? fallback.composition_items : [];
+      }
+      if (!(Array.isArray(primary.composition) && primary.composition.length)) {
+        merged.composition = Array.isArray(fallback.composition) ? fallback.composition : [];
+      }
+      merged._data_source = (hasUsefulFormulaData(primary) ? "主服务+MCP补全" : "MCP降级")
+      return merged;
+    }
+
+    function renderHerbLinks(items) {
+      const box = document.getElementById("herbLinks");
       box.innerHTML = "";
+      if (!items || !items.length) return;
 
-      if (!image?.ok || !image?.image_path) {
-        box.innerHTML = `<div class="placeholder">暂无图像</div>`;
-        return;
-      }
+      const title = document.createElement("span");
+      title.innerText = "点击中药跳转：";
+      box.appendChild(title);
 
-      const img = document.createElement("img");
-      img.src = toAssetUrl(image.image_path);
-      img.alt = "persona image";
-      box.appendChild(img);
-
-      const tip = document.createElement("div");
-      tip.className = "image-tip";
-      tip.innerText = "点击人物说话";
-      box.appendChild(tip);
+      items.forEach(it => {
+        const span = document.createElement("span");
+        span.className = "chip";
+        span.innerText = `${it.name}${it.dose ? `（${it.dose}）` : ""}`;
+        span.onclick = () => { window.location.href = `herb_page.html?name=${encodeURIComponent(it.name)}`; };
+        box.appendChild(span);
+      });
     }
 
-    function renderAudio(tts) {
-      const audio = document.getElementById("audioPlayer");
-      const info = document.getElementById("audioInfo");
-      const phraseList = document.getElementById("phraseList");
-
-      audio.removeAttribute("src");
-      audio.load();
-
-      catchphraseAudioList = [];
-      catchphraseTextList = [];
-      catchphraseIndex = 0;
-      phraseList.innerHTML = "";
-
-      if (!tts?.ok) {
-        info.innerText = "暂无音频";
-        return;
-      }
-
-      // 自我介绍语音
-      const introAudioPath =
-        tts?.intro_audio ||
-        tts?.audio_path ||
-        tts?.tts?.audio_path ||
-        "";
-
-      if (introAudioPath) {
-        audio.src = toAssetUrl(introAudioPath);
-        info.innerText = `当前默认播放：自我介绍语音`;
+    function renderComposition(items, compositionTextList) {
+      if (items && items.length) {
+        setText("composition", items.map(x => `${x.name}${x.dose ? ` ${x.dose}` : ""}${x.role ? `【${x.role}】` : ""}`).join("、"));
       } else {
-        info.innerText = "暂无自我介绍语音";
+        setText("composition", (compositionTextList || []).join("、") || "-");
+      }
+    }
+
+
+    async function refineStoriesByMcp(data) {
+      const payload = {
+        name: data.name || "",
+        composition_items: Array.isArray(data.composition_items) ? data.composition_items : [],
+        efficacy_and_indications: data.efficacy_and_indications || data.efficacy || data.indications || "",
+        applicable_syndromes: data.applicable_syndromes || data.syndrome_points || "",
+        source: data.source || "",
+      };
+
+      const r = await fetchJsonWithTimeout(`${MCP_BASE}/tools/formula_story_llm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }, 15000).catch(e => ({ ok:false, data:{error:e.message} }));
+
+      if (r.ok && r.data && r.data.ok) {
+        data.role_story = r.data.role_story || data.role_story;
+        data.formula_story = r.data.formula_story || data.formula_story;
+        data.story_source = r.data.story_source || data.story_source || "template";
+      }
+      return data;
+    }
+    function renderCharts(name, items) {
+      const graphFallback = document.getElementById("graphFallback");
+      const pieFallback = document.getElementById("pieFallback");
+      graphFallback.innerText = "";
+      pieFallback.innerText = "";
+
+      if (!window.echarts) {
+        graphFallback.innerText = "图表库加载失败（CDN不可达），已展示文本信息。";
+        pieFallback.innerText = "图表库加载失败（CDN不可达），已展示文本信息。";
+        return;
       }
 
-      // 口头禅语音列表
-      const items = tts?.catchphrase_items || [];
-      items.forEach(item => {
-        if (item?.audio_path) {
-          catchphraseAudioList.push(item.audio_path);
-          catchphraseTextList.push(item.text || "");
-        }
+      const graphChart = echarts.init(document.getElementById("compatGraph"));
+      const pieChart = echarts.init(document.getElementById("ratioChart"));
+
+      const nodes = [{ id: "formula", name, symbolSize: 88, itemStyle: { color: "#f97316" } }];
+      const links = [];
+      const roleColor = { "君": "#ef4444", "臣": "#f59e0b", "佐": "#10b981", "使": "#3b82f6" };
+
+      (items || []).forEach((it, idx) => {
+        const nodeId = `h_${idx}`;
+        const role = (it.role || "").trim();
+        const w = Number(it.weight || 0);
+        nodes.push({
+          id: nodeId,
+          name: `${it.name}${it.dose ? `\n${it.dose}` : ""}${role ? `\n${role}` : ""}`,
+          symbolSize: Math.max(46, Math.min(78, 46 + (w > 0 ? w : numFromDose(it.dose)) * 2)),
+          itemStyle: { color: roleColor[role] || "#64748b" },
+        });
+        links.push({ source: "formula", target: nodeId, label: { show: true, formatter: it.dose || role || "配伍" } });
       });
 
-      catchphraseTextList.forEach((text, idx) => {
-        const li = document.createElement("li");
-        li.innerText = `口头禅${idx + 1}：${text}`;
-        phraseList.appendChild(li);
+      graphChart.setOption({
+        tooltip: {},
+        series: [{
+          type: "graph",
+          layout: "force",
+          roam: true,
+          force: { repulsion: 420, edgeLength: [100, 180] },
+          label: { show: true },
+          data: nodes,
+          links,
+        }]
       });
+
+      const pieData = (items || []).map(x => ({ name: x.name, value: Number(x.weight || 0) || numFromDose(x.dose) }));
+      if (pieData.length) {
+        pieChart.setOption({
+          tooltip: { trigger: "item" },
+          legend: { bottom: 0 },
+          series: [{ type: "pie", radius: ["34%", "66%"], roseType: "area", data: pieData }]
+        });
+      } else {
+        pieFallback.innerText = "暂无可解析剂量，未绘制比例图。";
+      }
+
+      window.addEventListener("resize", () => { graphChart.resize(); pieChart.resize(); });
     }
 
-    function bindImageClickPlay() {
-      const imageBox = document.getElementById("imageBox");
-      const audio = document.getElementById("audioPlayer");
-      const info = document.getElementById("audioInfo");
-
-      imageBox.onclick = function() {
-        if (!catchphraseAudioList.length) {
-          info.innerText = "暂无口头禅语音可播放";
-          return;
-        }
-
-        const currentAudioPath = catchphraseAudioList[catchphraseIndex];
-        const currentText = catchphraseTextList[catchphraseIndex] || `口头禅${catchphraseIndex + 1}`;
-
-        audio.src = toAssetUrl(currentAudioPath);
-        audio.play().catch(() => {});
-        info.innerText = `正在播放：${currentText}`;
-
-        catchphraseIndex += 1;
-        if (catchphraseIndex >= catchphraseAudioList.length) {
-          catchphraseIndex = 0;
-        }
-      };
-    }
-
-    async function loadHerb() {
-      const herbName = getQueryName();
-      if (!herbName) {
-        setError("未检测到中药名称参数");
+    async function loadFormula() {
+      const name = getQueryName();
+      if (!name) {
+        setError("未检测到方剂名称参数（URL 需要 ?name=四君子汤）");
         setStatus("");
         return;
       }
 
-      setStatus(`正在加载 ${herbName} ...`);
+      setStatus(`正在加载：${name}`);
       setError("");
+      await checkConnections();
 
+      let result;
       try {
-        const resp = await fetch(`${API_BASE}/api/herb_full`, {
+        result = await fetchJsonWithTimeout(`${API_BASE}/api/formula_full`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: herbName })
-        });
-
-        const data = await resp.json();
-
-        if (!data?.ok) {
-          setError(data?.error || data?.reason || "请求失败");
-          setStatus("加载失败");
-          return;
-        }
-
-        renderCard(data.card || {});
-        renderNarration(data.narration || {});
-        renderPersona(data.persona || {});
-        renderAudio(data.tts || {});
-        renderImage(data.image || {});
-        bindImageClickPlay();
-
-        setStatus(`已完成 ${herbName} 的展示`);
-      } catch (err) {
-        setError("请求异常：" + err.message);
-        setStatus("加载失败");
+          body: JSON.stringify({ query: name })
+        }, 60000);
+      } catch (e) {
+        result = { ok: false, status: 0, data: { error: e.message || "network error" } };
       }
+
+      let data = result.data || {};
+      const mainOk = result.ok && data && data.ok;
+
+      if (!mainOk) {
+        const backendErr = data.error || data.reason || `HTTP ${result.status}`;
+
+        const cardLlm = await getMcpFormulaCardLLM(name);
+        if (cardLlm.ok && cardLlm.data && cardLlm.data.ok) {
+          data = cardLlm.data;
+          data._data_source = "MCP大模型方剂卡";
+          setStatus(`已切换MCP大模型方剂卡：${name}`);
+          setError(`主服务失败，已使用MCP大模型：${backendErr}`);
+        } else {
+          const fb = await getMcpFormulaFallback(name);
+          if (fb.ok && fb.data && fb.data.ok) {
+            data = fb.data;
+            data._data_source = "MCP降级";
+            setStatus(`已切换MCP降级数据：${name}`);
+            setError(`主服务失败，已使用MCP降级：${backendErr}`);
+          } else {
+            const cardErr = (cardLlm.data && (cardLlm.data.error || cardLlm.data.reason)) || "MCP formula_card_llm failed";
+            const fbErr = (fb.data && (fb.data.error || fb.data.reason)) || "MCP fallback failed";
+            setError(`主服务失败：${backendErr}；MCP方剂卡失败：${cardErr}；MCP降级也失败：${fbErr}`);
+            setStatus("加载失败（请确认 API 8010、MCP 8001 与模型配置）");
+            return;
+          }
+        }
+      } else {
+        // 主服务可用但字段为空时，也调用 MCP 补全，避免页面出现大量“-”
+        const needPatch = !hasUsefulFormulaData(data);
+        const cardLlm = await getMcpFormulaCardLLM(name);
+        if (cardLlm.ok && cardLlm.data && cardLlm.data.ok) {
+          data = mergeFormulaData(data, cardLlm.data);
+          if (needPatch) {
+            setStatus(`主服务字段不足，已使用MCP大模型补全：${name}`);
+          }
+        } else {
+          const fb = await getMcpFormulaFallback(name);
+          if (fb.ok && fb.data && fb.data.ok) {
+            data = mergeFormulaData(data, fb.data);
+            if (needPatch) {
+              setStatus(`主服务字段不足，已使用MCP降级补全：${name}`);
+            }
+          } else {
+            data._data_source = "主服务";
+          }
+        }
+      }
+
+      setText("formulaName", data.name || name);
+      setText("summary", data.summary || "-");
+      data = await refineStoriesByMcp(data);
+
+      setText("source", data.source || "-");
+      setText("roles", data.jun_chen_zuo_shi_analysis || "-");
+      setText("efficacy", data.efficacy_and_indications || data.efficacy || data.indications || "-");
+      setText("syndrome", data.applicable_syndromes || data.syndrome_points || "-");
+      setText("mods", data.modifications || "-");
+      setText("modern", data.modern_research || data.modern_hint || "-");
+      setText("roleStory", data.role_story || "-");
+      setText("formulaStory", data.formula_story || "-");
+      setText("storySource", `故事来源：${(data.story_source === "llm") ? "大模型生成(Qwen)" : "模板生成"}`);
+
+      const items = Array.isArray(data.composition_items) ? data.composition_items : [];
+      renderComposition(items, data.composition || []);
+      renderHerbLinks(items);
+      renderCharts(data.name || name, items);
+
+      const src = data._data_source || "主服务";
+      const ssrc = (data.story_source === "llm") ? "大模型" : "模板";
+      setStatus(`加载完成：${name}（数据源：${src}，故事：${ssrc}）`);
     }
 
-    loadHerb();
+    loadFormula();
   </script>
 </body>
 </html>
