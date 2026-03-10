@@ -39,6 +39,7 @@ from mcp_server.tools.kg_graph_tools import (
 
 from mcp_server.tools.wan_image_tools import tool_wan_text_to_image
 from mcp_server.tools.formula_tools import tool_formula_fallback, tool_formula_story_refine
+from mcp_server.tools.formula_llm_tools import tool_formula_card_llm, tool_formula_story_llm
 
 DEFAULT_TARGET_MODEL = "qwen3-tts-vd-realtime-2026-01-15"
 
@@ -225,6 +226,42 @@ class FormulaStoryRefineReq(BaseModel):
 @app.post("/tools/formula_story_refine")
 def formula_story_refine(req: FormulaStoryRefineReq):
     return tool_formula_story_refine(
+        name=req.name,
+        composition_items=req.composition_items,
+        efficacy_and_indications=req.efficacy_and_indications,
+        applicable_syndromes=req.applicable_syndromes,
+        source=req.source,
+    )
+
+
+class FormulaCardLLMReq(BaseModel):
+    name: str
+    vec_dir: Optional[str] = None
+    topk: int = 12
+    min_rag_score: float = 0.28
+
+
+@app.post("/tools/formula_card_llm")
+def formula_card_llm(req: FormulaCardLLMReq):
+    return tool_formula_card_llm(
+        name=req.name,
+        vec_dir=req.vec_dir,
+        topk=req.topk,
+        min_rag_score=req.min_rag_score,
+    )
+
+
+class FormulaStoryLLMReq(BaseModel):
+    name: str
+    composition_items: List[dict] = []
+    efficacy_and_indications: str = ""
+    applicable_syndromes: str = ""
+    source: str = ""
+
+
+@app.post("/tools/formula_story_llm")
+def formula_story_llm(req: FormulaStoryLLMReq):
+    return tool_formula_story_llm(
         name=req.name,
         composition_items=req.composition_items,
         efficacy_and_indications=req.efficacy_and_indications,

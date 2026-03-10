@@ -168,6 +168,14 @@
       }, 10000).catch(e => ({ ok:false, data:{error:e.message} }));
     }
 
+    async function getMcpFormulaCardLLM(name) {
+      return fetchJsonWithTimeout(`${MCP_BASE}/tools/formula_card_llm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, topk: 12, min_rag_score: 0.28 })
+      }, 30000).catch(e => ({ ok:false, data:{error:e.message} }));
+    }
+
     function mergeFormulaData(primary, fallback) {
       if (!primary || typeof primary !== "object") return fallback || {};
       if (!fallback || typeof fallback !== "object") return primary;
@@ -226,7 +234,7 @@
         source: data.source || "",
       };
 
-      const r = await fetchJsonWithTimeout(`${MCP_BASE}/tools/formula_story_refine`, {
+      const r = await fetchJsonWithTimeout(`${MCP_BASE}/tools/formula_story_llm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -326,29 +334,47 @@
 
       if (!mainOk) {
         const backendErr = data.error || data.reason || `HTTP ${result.status}`;
-        const fb = await getMcpFormulaFallback(name);
-        if (fb.ok && fb.data && fb.data.ok) {
-          data = fb.data;
-          data._data_source = "MCP降级";
-          setStatus(`已切换MCP降级数据：${name}`);
-          setError(`主服务失败，已使用MCP：${backendErr}`);
+
+        const cardLlm = await getMcpFormulaCardLLM(name);
+        if (cardLlm.ok && cardLlm.data && cardLlm.data.ok) {
+          data = cardLlm.data;
+          data._data_source = "MCP大模型方剂卡";
+          setStatus(`已切换MCP大模型方剂卡：${name}`);
+          setError(`主服务失败，已使用MCP大模型：${backendErr}`);
         } else {
-          const fbErr = (fb.data && (fb.data.error || fb.data.reason)) || "MCP fallback failed";
-          setError(`主服务失败：${backendErr}；MCP降级也失败：${fbErr}`);
-          setStatus("加载失败（请确认 API 8010、MCP 8001 与模型配置）");
-          return;
+          const fb = await getMcpFormulaFallback(name);
+          if (fb.ok && fb.data && fb.data.ok) {
+            data = fb.data;
+            data._data_source = "MCP降级";
+            setStatus(`已切换MCP降级数据：${name}`);
+            setError(`主服务失败，已使用MCP降级：${backendErr}`);
+          } else {
+            const cardErr = (cardLlm.data && (cardLlm.data.error || cardLlm.data.reason)) || "MCP formula_card_llm failed";
+            const fbErr = (fb.data && (fb.data.error || fb.data.reason)) || "MCP fallback failed";
+            setError(`主服务失败：${backendErr}；MCP方剂卡失败：${cardErr}；MCP降级也失败：${fbErr}`);
+            setStatus("加载失败（请确认 API 8010、MCP 8001 与模型配置）");
+            return;
+          }
         }
       } else {
         // 主服务可用但字段为空时，也调用 MCP 补全，避免页面出现大量“-”
         const needPatch = !hasUsefulFormulaData(data);
-        const fb = await getMcpFormulaFallback(name);
-        if (fb.ok && fb.data && fb.data.ok) {
-          data = mergeFormulaData(data, fb.data);
+        const cardLlm = await getMcpFormulaCardLLM(name);
+        if (cardLlm.ok && cardLlm.data && cardLlm.data.ok) {
+          data = mergeFormulaData(data, cardLlm.data);
           if (needPatch) {
-            setStatus(`主服务字段不足，已使用MCP补全：${name}`);
+            setStatus(`主服务字段不足，已使用MCP大模型补全：${name}`);
           }
         } else {
-          data._data_source = "主服务";
+          const fb = await getMcpFormulaFallback(name);
+          if (fb.ok && fb.data && fb.data.ok) {
+            data = mergeFormulaData(data, fb.data);
+            if (needPatch) {
+              setStatus(`主服务字段不足，已使用MCP降级补全：${name}`);
+            }
+          } else {
+            data._data_source = "主服务";
+          }
         }
       }
 
@@ -364,7 +390,7 @@
       setText("modern", data.modern_research || data.modern_hint || "-");
       setText("roleStory", data.role_story || "-");
       setText("formulaStory", data.formula_story || "-");
-      setText("storySource", `故事来源：${(data.story_source === "llm") ? "大模型生成" : "模板生成"}`);
+      setText("storySource", `故事来源：${(data.story_source === "llm") ? "大模型生成(Qwen)" : "模板生成"}`);
 
       const items = Array.isArray(data.composition_items) ? data.composition_items : [];
       renderComposition(items, data.composition || []);
