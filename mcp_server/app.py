@@ -38,6 +38,7 @@ from mcp_server.tools.kg_graph_tools import (
 )
 
 from mcp_server.tools.wan_image_tools import tool_wan_text_to_image
+from mcp_server.tools.formula_tools import tool_formula_fallback
 
 DEFAULT_TARGET_MODEL = "qwen3-tts-vd-realtime-2026-01-15"
 
@@ -202,3 +203,12 @@ def wan_text_to_image(req: WanImageReq):
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
+
+
+class FormulaFallbackReq(BaseModel):
+    name: str
+
+
+@app.post("/tools/formula_fallback")
+def formula_fallback(req: FormulaFallbackReq):
+    return tool_formula_fallback(req.name)

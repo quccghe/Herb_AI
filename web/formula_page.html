@@ -245,19 +245,31 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: name })
-        }, 15000);
+        }, 60000);
       } catch (e) {
-        setError(`请求失败：${e.message}`);
-        setStatus("加载失败");
-        return;
+        result = { ok: false, status: 0, data: { error: e.message || "network error" } };
       }
 
-      const data = result.data || {};
+      let data = result.data || {};
       if (!result.ok || !data.ok) {
         const backendErr = data.error || data.reason || `HTTP ${result.status}`;
-        setError(`后端返回错误：${backendErr}`);
-        setStatus("加载失败（请确认 API 8010 是否启动，以及向量模型路径是否可用）");
-        return;
+        setError(`主服务失败，已尝试MCP降级：${backendErr}`);
+
+        const fb = await fetchJsonWithTimeout(`${MCP_BASE}/tools/formula_fallback`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name })
+        }, 10000).catch(e => ({ ok:false, data:{error:e.message} }));
+
+        if (fb.ok && fb.data && fb.data.ok) {
+          data = fb.data;
+          setStatus(`已切换MCP降级数据：${name}`);
+        } else {
+          const fbErr = (fb.data && (fb.data.error || fb.data.reason)) || "MCP fallback failed";
+          setError(`主服务失败：${backendErr}；MCP降级也失败：${fbErr}`);
+          setStatus("加载失败（请确认 API 8010、MCP 8001 与模型配置）");
+          return;
+        }
       }
 
       setText("formulaName", data.name || name);
