@@ -88,7 +88,8 @@
     <div class="panel story-wrap">
       <div class="grid">
         <div class="item"><div class="label">方剂配伍小故事（君臣佐使）</div><div id="roleStory" class="value">-</div></div>
-        <div class="item"><div class="label">方剂故事化讲解</div><div id="formulaStory" class="value">-</div></div>
+        <div class="item"><div class="label">方剂故事化讲解</div><div id="formulaStory" class="value">-</div>
+          <div id="storySource" class="viz-fallback"></div></div>
       </div>
     </div>
   </div>
@@ -215,6 +216,29 @@
       }
     }
 
+
+    async function refineStoriesByMcp(data) {
+      const payload = {
+        name: data.name || "",
+        composition_items: Array.isArray(data.composition_items) ? data.composition_items : [],
+        efficacy_and_indications: data.efficacy_and_indications || data.efficacy || data.indications || "",
+        applicable_syndromes: data.applicable_syndromes || data.syndrome_points || "",
+        source: data.source || "",
+      };
+
+      const r = await fetchJsonWithTimeout(`${MCP_BASE}/tools/formula_story_refine`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }, 15000).catch(e => ({ ok:false, data:{error:e.message} }));
+
+      if (r.ok && r.data && r.data.ok) {
+        data.role_story = r.data.role_story || data.role_story;
+        data.formula_story = r.data.formula_story || data.formula_story;
+        data.story_source = r.data.story_source || data.story_source || "template";
+      }
+      return data;
+    }
     function renderCharts(name, items) {
       const graphFallback = document.getElementById("graphFallback");
       const pieFallback = document.getElementById("pieFallback");
@@ -330,6 +354,8 @@
 
       setText("formulaName", data.name || name);
       setText("summary", data.summary || "-");
+      data = await refineStoriesByMcp(data);
+
       setText("source", data.source || "-");
       setText("roles", data.jun_chen_zuo_shi_analysis || "-");
       setText("efficacy", data.efficacy_and_indications || data.efficacy || data.indications || "-");
@@ -338,6 +364,7 @@
       setText("modern", data.modern_research || data.modern_hint || "-");
       setText("roleStory", data.role_story || "-");
       setText("formulaStory", data.formula_story || "-");
+      setText("storySource", `故事来源：${(data.story_source === "llm") ? "大模型生成" : "模板生成"}`);
 
       const items = Array.isArray(data.composition_items) ? data.composition_items : [];
       renderComposition(items, data.composition || []);
@@ -345,7 +372,8 @@
       renderCharts(data.name || name, items);
 
       const src = data._data_source || "主服务";
-      setStatus(`加载完成：${name}（数据源：${src}）`);
+      const ssrc = (data.story_source === "llm") ? "大模型" : "模板";
+      setStatus(`加载完成：${name}（数据源：${src}，故事：${ssrc}）`);
     }
 
     loadFormula();

@@ -38,7 +38,7 @@ from mcp_server.tools.kg_graph_tools import (
 )
 
 from mcp_server.tools.wan_image_tools import tool_wan_text_to_image
-from mcp_server.tools.formula_tools import tool_formula_fallback
+from mcp_server.tools.formula_tools import tool_formula_fallback, tool_formula_story_refine
 
 DEFAULT_TARGET_MODEL = "qwen3-tts-vd-realtime-2026-01-15"
 
@@ -212,3 +212,22 @@ class FormulaFallbackReq(BaseModel):
 @app.post("/tools/formula_fallback")
 def formula_fallback(req: FormulaFallbackReq):
     return tool_formula_fallback(req.name)
+
+
+class FormulaStoryRefineReq(BaseModel):
+    name: str
+    composition_items: List[dict] = []
+    efficacy_and_indications: str = ""
+    applicable_syndromes: str = ""
+    source: str = ""
+
+
+@app.post("/tools/formula_story_refine")
+def formula_story_refine(req: FormulaStoryRefineReq):
+    return tool_formula_story_refine(
+        name=req.name,
+        composition_items=req.composition_items,
+        efficacy_and_indications=req.efficacy_and_indications,
+        applicable_syndromes=req.applicable_syndromes,
+        source=req.source,
+    )
