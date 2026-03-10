@@ -4,23 +4,28 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>方剂讲解页</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: "Microsoft YaHei", Arial, sans-serif; background: #f5f7fb; color: #222; }
-    .container { width: 1200px; margin: 24px auto; }
-    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-    .back { color: #1677ff; text-decoration: none; font-size: 14px; }
-    .title { font-size: 28px; margin: 0; }
-    .sub { font-size: 14px; color: #666; margin-top: 6px; }
-    .panel { background: #fff; border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 18px 20px; margin-bottom: 16px; }
-    .status { color: #666; font-size: 14px; min-height: 22px; }
-    .error { color: #c0392b; font-size: 14px; min-height: 22px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .item { background: #fafbfc; border: 1px solid #eef0f3; border-radius: 12px; padding: 12px 14px; }
-    .item.full { grid-column: span 2; }
-    .label { font-size: 12px; color: #777; margin-bottom: 6px; }
-    .value { font-size: 14px; line-height: 1.8; color: #222; white-space: pre-wrap; }
-    ul { margin: 0; padding-left: 18px; }
+    body { margin: 0; font-family: "Microsoft YaHei", Arial, sans-serif; background: #f4f7fb; color: #1f2a37; }
+    .container { width: 1320px; margin: 20px auto 40px; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+    .back { color:#1677ff; text-decoration:none; }
+    .title { margin:0; font-size:30px; }
+    .sub { color:#667085; margin-top:6px; }
+    .panel { background:#fff; border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,.06); padding:16px 18px; margin-bottom:14px; }
+    .status { min-height: 22px; color:#475467; }
+    .error { min-height: 22px; color:#d92d20; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+    .item { background:#fafbfc; border:1px solid #e9edf2; border-radius:12px; padding:12px; }
+    .full { grid-column: span 2; }
+    .label { font-size:12px; color:#667085; margin-bottom:6px; }
+    .value { line-height:1.8; white-space:pre-wrap; }
+    .herb-chip { display:inline-block; margin:4px 8px 4px 0; padding:4px 10px; border-radius:999px; background:#eef4ff; color:#1d4ed8; cursor:pointer; border:1px solid #dbe7ff; }
+    .viz-grid { display:grid; grid-template-columns: 2fr 1fr; gap:14px; }
+    #compatGraph { height: 500px; }
+    #ratioChart { height: 500px; }
+    .story { background: linear-gradient(135deg,#fff7ed,#eff6ff); border:1px solid #fde6c8; }
   </style>
 </head>
 <body>
@@ -28,7 +33,7 @@
     <div class="topbar">
       <div>
         <h1 class="title">方剂结构化讲解页</h1>
-        <div class="sub">组成 · 功效 · 主治 · 方义 · 用法 · 注意事项</div>
+        <div class="sub">来源 / 组成 / 君臣佐使 / 功效主治 / 适用证候 / 加减应用 / 现代研究</div>
       </div>
       <a class="back" href="index.html">← 返回首页</a>
     </div>
@@ -40,55 +45,141 @@
 
     <div class="panel">
       <h2 id="formulaName" style="margin-top:0;">-</h2>
+      <div id="summary" class="value" style="font-size:16px;"></div>
+      <div id="herbLinks" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="panel">
       <div class="grid">
-        <div class="item full"><div class="label">一句话总结</div><div id="summary" class="value">-</div></div>
-        <div class="item"><div class="label">出处</div><div id="source" class="value">-</div></div>
-        <div class="item"><div class="label">功效</div><div id="efficacy" class="value">-</div></div>
-        <div class="item full"><div class="label">组成</div><div id="composition" class="value">-</div></div>
-        <div class="item full"><div class="label">主治</div><div id="indications" class="value">-</div></div>
-        <div class="item full"><div class="label">证候要点</div><div id="syndrome" class="value">-</div></div>
-        <div class="item full"><div class="label">方义简析</div><div id="analysis" class="value">-</div></div>
-        <div class="item"><div class="label">用法用量</div><div id="dosage" class="value">-</div></div>
-        <div class="item"><div class="label">现代提示</div><div id="modern" class="value">-</div></div>
-        <div class="item full"><div class="label">注意事项</div><div id="cautions" class="value">-</div></div>
+        <div class="item"><div class="label">1️⃣ 方剂来源</div><div id="source" class="value">-</div></div>
+        <div class="item"><div class="label">2️⃣ 方剂组成</div><div id="composition" class="value">-</div></div>
+        <div class="item"><div class="label">3️⃣ 君臣佐使分析</div><div id="roles" class="value">-</div></div>
+        <div class="item"><div class="label">4️⃣ 功效与主治</div><div id="efficacy" class="value">-</div></div>
+        <div class="item"><div class="label">5️⃣ 适用证候</div><div id="syndrome" class="value">-</div></div>
+        <div class="item"><div class="label">6️⃣ 加减应用</div><div id="mods" class="value">-</div></div>
+        <div class="item full"><div class="label">7️⃣ 现代研究</div><div id="modern" class="value">-</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="viz-grid">
+        <div class="item">
+          <div class="label">方剂配伍图（方剂居中，药物环绕，标注剂量/角色）</div>
+          <div id="compatGraph"></div>
+        </div>
+        <div class="item">
+          <div class="label">剂量与组成比例可视化</div>
+          <div id="ratioChart"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel story">
+      <div class="grid">
+        <div class="item"><div class="label">方剂配伍小故事（君臣佐使拟人化）</div><div id="roleStory" class="value">-</div></div>
+        <div class="item"><div class="label">方剂故事化讲解</div><div id="formulaStory" class="value">-</div></div>
       </div>
     </div>
   </div>
 
   <script>
     const API_BASE = "http://127.0.0.1:8010";
+    const graphChart = echarts.init(document.getElementById("compatGraph"));
+    const pieChart = echarts.init(document.getElementById("ratioChart"));
 
     function getQueryName() {
-      const params = new URLSearchParams(window.location.search);
-      return params.get("name") || "";
+      return new URLSearchParams(window.location.search).get("name") || "";
+    }
+    function t(id, val) { document.getElementById(id).innerText = (val && String(val).trim()) ? val : "-"; }
+    function setStatus(s) { document.getElementById("status").innerText = s || ""; }
+    function setError(s) { document.getElementById("error").innerText = s || ""; }
+
+    function numFromDose(dose) {
+      const m = String(dose || "").match(/(\d+(?:\.\d+)?)/);
+      return m ? Number(m[1]) : 1;
     }
 
-    function setStatus(text) { document.getElementById("status").innerText = text || ""; }
-    function setError(text) { document.getElementById("error").innerText = text || ""; }
-
-    function fillText(id, val) {
-      document.getElementById(id).innerText = val && String(val).trim() ? val : "-";
+    function renderHerbLinks(items) {
+      const box = document.getElementById("herbLinks");
+      box.innerHTML = "";
+      if (!items || !items.length) return;
+      const title = document.createElement("span");
+      title.innerText = "点击中药跳转：";
+      box.appendChild(title);
+      items.forEach(it => {
+        const span = document.createElement("span");
+        span.className = "herb-chip";
+        span.innerText = `${it.name}${it.dose ? `（${it.dose}）` : ""}`;
+        span.onclick = () => {
+          window.location.href = `herb_page.html?name=${encodeURIComponent(it.name)}`;
+        };
+        box.appendChild(span);
+      });
     }
 
-    function renderFormula(data) {
-      fillText("formulaName", data.name || "-");
-      fillText("summary", data.summary || "-");
-      fillText("source", data.source || "-");
-      fillText("efficacy", data.efficacy || "-");
-
-      const comp = Array.isArray(data.composition) ? data.composition : [];
-      if (!comp.length) {
-        fillText("composition", "-");
+    function renderComposition(items, compositionTextList) {
+      if (items && items.length) {
+        t("composition", items.map(x => `${x.name}${x.dose ? ` ${x.dose}` : ""}${x.role ? `【${x.role}】` : ""}`).join("、"));
       } else {
-        document.getElementById("composition").innerHTML = `<ul>${comp.map(x => `<li>${x}</li>`).join("")}</ul>`;
+        t("composition", (compositionTextList || []).join("、") || "-");
       }
+    }
 
-      fillText("indications", data.indications || "-");
-      fillText("syndrome", data.syndrome_points || "-");
-      fillText("analysis", data.compatibility_analysis || "-");
-      fillText("dosage", data.dosage_usage || "-");
-      fillText("modern", data.modern_hint || "-");
-      fillText("cautions", data.cautions || "-");
+    function renderGraph(name, items) {
+      const nodes = [{ id: "formula", name: name, symbolSize: 90, itemStyle: { color: "#f97316" } }];
+      const links = [];
+      const roleColor = { "君": "#ef4444", "臣": "#f59e0b", "佐": "#10b981", "使": "#3b82f6" };
+
+      (items || []).forEach((it, idx) => {
+        const nodeId = `h_${idx}`;
+        const role = (it.role || "").trim();
+        const w = Number(it.weight || 0);
+        nodes.push({
+          id: nodeId,
+          name: `${it.name}${it.dose ? `\n${it.dose}` : ""}${role ? `\n${role}` : ""}`,
+          symbolSize: Math.max(48, Math.min(80, 48 + (w > 0 ? w : numFromDose(it.dose)) * 2)),
+          itemStyle: { color: roleColor[role] || "#64748b" },
+          value: it.name
+        });
+        links.push({
+          source: "formula",
+          target: nodeId,
+          label: { show: true, formatter: it.dose || role || "配伍" },
+          lineStyle: { width: 2, curveness: 0.1 }
+        });
+      });
+
+      graphChart.setOption({
+        tooltip: {},
+        series: [{
+          type: "graph",
+          layout: "force",
+          roam: true,
+          force: { repulsion: 480, edgeLength: [110, 180] },
+          label: { show: true, color: "#111827" },
+          data: nodes,
+          links: links
+        }]
+      });
+    }
+
+    function renderPie(items) {
+      const pieData = (items || []).map(x => ({ name: x.name, value: Number(x.weight || 0) || numFromDose(x.dose) }));
+      if (!pieData.length) {
+        pieChart.clear();
+        return;
+      }
+      pieChart.setOption({
+        tooltip: { trigger: "item" },
+        legend: { bottom: 0 },
+        series: [{
+          type: "pie",
+          radius: ["35%", "68%"],
+          roseType: "area",
+          data: pieData,
+          label: { formatter: "{b}: {d}%" }
+        }]
+      });
     }
 
     async function loadFormula() {
@@ -116,13 +207,34 @@
           return;
         }
 
-        renderFormula(data);
+        t("formulaName", data.name || name);
+        t("summary", data.summary || "-");
+        t("source", data.source || "-");
+        t("roles", data.jun_chen_zuo_shi_analysis || "-");
+        t("efficacy", data.efficacy_and_indications || data.efficacy || data.indications || "-");
+        t("syndrome", data.applicable_syndromes || data.syndrome_points || "-");
+        t("mods", data.modifications || "-");
+        t("modern", data.modern_research || data.modern_hint || "-");
+        t("roleStory", data.role_story || "-");
+        t("formulaStory", data.formula_story || "-");
+
+        const items = Array.isArray(data.composition_items) ? data.composition_items : [];
+        renderComposition(items, data.composition || []);
+        renderHerbLinks(items);
+        renderGraph(data.name || name, items);
+        renderPie(items);
+
         setStatus(`已完成 ${name} 的讲解`);
       } catch (err) {
         setError("请求异常：" + err.message);
         setStatus("加载失败");
       }
     }
+
+    window.addEventListener("resize", () => {
+      graphChart.resize();
+      pieChart.resize();
+    });
 
     loadFormula();
   </script>
