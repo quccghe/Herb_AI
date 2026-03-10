@@ -3,29 +3,37 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>方剂讲解页</title>
+  <title>方剂结构化讲解页</title>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: "Microsoft YaHei", Arial, sans-serif; background: #f4f7fb; color: #1f2a37; }
-    .container { width: 1320px; margin: 20px auto 40px; }
-    .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
-    .back { color:#1677ff; text-decoration:none; }
-    .title { margin:0; font-size:30px; }
-    .sub { color:#667085; margin-top:6px; }
+    .container { width: 1280px; max-width: calc(100vw - 40px); margin: 20px auto 36px; }
+    .topbar { display:flex; justify-content:space-between; align-items:flex-start; gap: 16px; margin-bottom:14px; }
+    .title { margin: 0; font-size: 30px; }
+    .sub { color:#667085; margin-top: 6px; line-height: 1.7; }
+    .back { color:#1677ff; text-decoration:none; font-size:14px; margin-top: 10px; }
+
     .panel { background:#fff; border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,.06); padding:16px 18px; margin-bottom:14px; }
-    .status { min-height: 22px; color:#475467; }
-    .error { min-height: 22px; color:#d92d20; }
+    .status { color:#344054; min-height:24px; }
+    .error { color:#b42318; min-height:24px; }
+    .ok { color:#027a48; }
+    .warn { color:#b54708; }
+
     .grid { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
     .item { background:#fafbfc; border:1px solid #e9edf2; border-radius:12px; padding:12px; }
     .full { grid-column: span 2; }
     .label { font-size:12px; color:#667085; margin-bottom:6px; }
-    .value { line-height:1.8; white-space:pre-wrap; }
-    .herb-chip { display:inline-block; margin:4px 8px 4px 0; padding:4px 10px; border-radius:999px; background:#eef4ff; color:#1d4ed8; cursor:pointer; border:1px solid #dbe7ff; }
+    .value { line-height:1.85; white-space:pre-wrap; }
+
+    .chips { margin-top: 8px; }
+    .chip { display:inline-block; margin:4px 8px 4px 0; padding:4px 10px; border-radius:999px; background:#eef4ff; color:#1d4ed8; cursor:pointer; border:1px solid #dbe7ff; }
+
     .viz-grid { display:grid; grid-template-columns: 2fr 1fr; gap:14px; }
-    #compatGraph { height: 500px; }
-    #ratioChart { height: 500px; }
-    .story { background: linear-gradient(135deg,#fff7ed,#eff6ff); border:1px solid #fde6c8; }
+    #compatGraph, #ratioChart { height: 460px; }
+    .viz-fallback { color:#667085; font-size:13px; padding:8px 4px; }
+
+    .story-wrap { background: linear-gradient(135deg,#fff7ed,#eff6ff); border:1px solid #fde6c8; }
   </style>
 </head>
 <body>
@@ -33,20 +41,21 @@
     <div class="topbar">
       <div>
         <h1 class="title">方剂结构化讲解页</h1>
-        <div class="sub">来源 / 组成 / 君臣佐使 / 功效主治 / 适用证候 / 加减应用 / 现代研究</div>
+        <div class="sub">来源 / 组成 / 君臣佐使 / 功效主治 / 适用证候 / 加减应用 / 现代研究 / 配伍故事</div>
       </div>
       <a class="back" href="index.html">← 返回首页</a>
     </div>
 
     <div class="panel">
       <div id="status" class="status">正在加载...</div>
+      <div id="conn" class="status"></div>
       <div id="error" class="error"></div>
     </div>
 
     <div class="panel">
-      <h2 id="formulaName" style="margin-top:0;">-</h2>
-      <div id="summary" class="value" style="font-size:16px;"></div>
-      <div id="herbLinks" style="margin-top:10px;"></div>
+      <h2 id="formulaName" style="margin:0 0 8px 0;">-</h2>
+      <div id="summary" class="value">-</div>
+      <div id="herbLinks" class="chips"></div>
     </div>
 
     <div class="panel">
@@ -64,19 +73,21 @@
     <div class="panel">
       <div class="viz-grid">
         <div class="item">
-          <div class="label">方剂配伍图（方剂居中，药物环绕，标注剂量/角色）</div>
+          <div class="label">方剂配伍图（方剂居中，药物环绕）</div>
           <div id="compatGraph"></div>
+          <div id="graphFallback" class="viz-fallback"></div>
         </div>
         <div class="item">
-          <div class="label">剂量与组成比例可视化</div>
+          <div class="label">剂量与组成比例</div>
           <div id="ratioChart"></div>
+          <div id="pieFallback" class="viz-fallback"></div>
         </div>
       </div>
     </div>
 
-    <div class="panel story">
+    <div class="panel story-wrap">
       <div class="grid">
-        <div class="item"><div class="label">方剂配伍小故事（君臣佐使拟人化）</div><div id="roleStory" class="value">-</div></div>
+        <div class="item"><div class="label">方剂配伍小故事（君臣佐使）</div><div id="roleStory" class="value">-</div></div>
         <div class="item"><div class="label">方剂故事化讲解</div><div id="formulaStory" class="value">-</div></div>
       </div>
     </div>
@@ -84,15 +95,47 @@
 
   <script>
     const API_BASE = "http://127.0.0.1:8010";
-    const graphChart = echarts.init(document.getElementById("compatGraph"));
-    const pieChart = echarts.init(document.getElementById("ratioChart"));
+    const MCP_BASE = "http://127.0.0.1:8001";
 
     function getQueryName() {
       return new URLSearchParams(window.location.search).get("name") || "";
     }
-    function t(id, val) { document.getElementById(id).innerText = (val && String(val).trim()) ? val : "-"; }
+    function setText(id, val) {
+      document.getElementById(id).innerText = (val && String(val).trim()) ? String(val) : "-";
+    }
     function setStatus(s) { document.getElementById("status").innerText = s || ""; }
     function setError(s) { document.getElementById("error").innerText = s || ""; }
+    function setConn(s, cls = "") {
+      const el = document.getElementById("conn");
+      el.className = `status ${cls}`.trim();
+      el.innerText = s || "";
+    }
+
+    async function fetchJsonWithTimeout(url, options = {}, timeoutMs = 12000) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), timeoutMs);
+      try {
+        const resp = await fetch(url, { ...options, signal: ctrl.signal });
+        const text = await resp.text();
+        let data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
+        return { ok: resp.ok, status: resp.status, data };
+      } finally {
+        clearTimeout(t);
+      }
+    }
+
+    async function checkConnections() {
+      const [apiHealth, mcpHealth] = await Promise.all([
+        fetchJsonWithTimeout(`${API_BASE}/health`, {}, 5000).catch(e => ({ ok:false, data:{error:e.message} })),
+        fetchJsonWithTimeout(`${MCP_BASE}/health`, {}, 5000).catch(e => ({ ok:false, data:{error:e.message} })),
+      ]);
+
+      const apiMsg = apiHealth.ok ? "API:可用" : "API:不可用";
+      const mcpMsg = mcpHealth.ok ? "MCP:可用" : "MCP:不可用";
+      const cls = (apiHealth.ok && mcpHealth.ok) ? "ok" : "warn";
+      setConn(`${apiMsg} | ${mcpMsg}`, cls);
+    }
 
     function numFromDose(dose) {
       const m = String(dose || "").match(/(\d+(?:\.\d+)?)/);
@@ -103,30 +146,44 @@
       const box = document.getElementById("herbLinks");
       box.innerHTML = "";
       if (!items || !items.length) return;
+
       const title = document.createElement("span");
       title.innerText = "点击中药跳转：";
       box.appendChild(title);
+
       items.forEach(it => {
         const span = document.createElement("span");
-        span.className = "herb-chip";
+        span.className = "chip";
         span.innerText = `${it.name}${it.dose ? `（${it.dose}）` : ""}`;
-        span.onclick = () => {
-          window.location.href = `herb_page.html?name=${encodeURIComponent(it.name)}`;
-        };
+        span.onclick = () => { window.location.href = `herb_page.html?name=${encodeURIComponent(it.name)}`; };
         box.appendChild(span);
       });
     }
 
     function renderComposition(items, compositionTextList) {
       if (items && items.length) {
-        t("composition", items.map(x => `${x.name}${x.dose ? ` ${x.dose}` : ""}${x.role ? `【${x.role}】` : ""}`).join("、"));
+        setText("composition", items.map(x => `${x.name}${x.dose ? ` ${x.dose}` : ""}${x.role ? `【${x.role}】` : ""}`).join("、"));
       } else {
-        t("composition", (compositionTextList || []).join("、") || "-");
+        setText("composition", (compositionTextList || []).join("、") || "-");
       }
     }
 
-    function renderGraph(name, items) {
-      const nodes = [{ id: "formula", name: name, symbolSize: 90, itemStyle: { color: "#f97316" } }];
+    function renderCharts(name, items) {
+      const graphFallback = document.getElementById("graphFallback");
+      const pieFallback = document.getElementById("pieFallback");
+      graphFallback.innerText = "";
+      pieFallback.innerText = "";
+
+      if (!window.echarts) {
+        graphFallback.innerText = "图表库加载失败（CDN不可达），已展示文本信息。";
+        pieFallback.innerText = "图表库加载失败（CDN不可达），已展示文本信息。";
+        return;
+      }
+
+      const graphChart = echarts.init(document.getElementById("compatGraph"));
+      const pieChart = echarts.init(document.getElementById("ratioChart"));
+
+      const nodes = [{ id: "formula", name, symbolSize: 88, itemStyle: { color: "#f97316" } }];
       const links = [];
       const roleColor = { "君": "#ef4444", "臣": "#f59e0b", "佐": "#10b981", "使": "#3b82f6" };
 
@@ -137,16 +194,10 @@
         nodes.push({
           id: nodeId,
           name: `${it.name}${it.dose ? `\n${it.dose}` : ""}${role ? `\n${role}` : ""}`,
-          symbolSize: Math.max(48, Math.min(80, 48 + (w > 0 ? w : numFromDose(it.dose)) * 2)),
+          symbolSize: Math.max(46, Math.min(78, 46 + (w > 0 ? w : numFromDose(it.dose)) * 2)),
           itemStyle: { color: roleColor[role] || "#64748b" },
-          value: it.name
         });
-        links.push({
-          source: "formula",
-          target: nodeId,
-          label: { show: true, formatter: it.dose || role || "配伍" },
-          lineStyle: { width: 2, curveness: 0.1 }
-        });
+        links.push({ source: "formula", target: nodeId, label: { show: true, formatter: it.dose || role || "配伍" } });
       });
 
       graphChart.setOption({
@@ -155,86 +206,78 @@
           type: "graph",
           layout: "force",
           roam: true,
-          force: { repulsion: 480, edgeLength: [110, 180] },
-          label: { show: true, color: "#111827" },
+          force: { repulsion: 420, edgeLength: [100, 180] },
+          label: { show: true },
           data: nodes,
-          links: links
+          links,
         }]
       });
-    }
 
-    function renderPie(items) {
       const pieData = (items || []).map(x => ({ name: x.name, value: Number(x.weight || 0) || numFromDose(x.dose) }));
-      if (!pieData.length) {
-        pieChart.clear();
-        return;
+      if (pieData.length) {
+        pieChart.setOption({
+          tooltip: { trigger: "item" },
+          legend: { bottom: 0 },
+          series: [{ type: "pie", radius: ["34%", "66%"], roseType: "area", data: pieData }]
+        });
+      } else {
+        pieFallback.innerText = "暂无可解析剂量，未绘制比例图。";
       }
-      pieChart.setOption({
-        tooltip: { trigger: "item" },
-        legend: { bottom: 0 },
-        series: [{
-          type: "pie",
-          radius: ["35%", "68%"],
-          roseType: "area",
-          data: pieData,
-          label: { formatter: "{b}: {d}%" }
-        }]
-      });
+
+      window.addEventListener("resize", () => { graphChart.resize(); pieChart.resize(); });
     }
 
     async function loadFormula() {
       const name = getQueryName();
       if (!name) {
-        setError("未检测到方剂名称参数");
+        setError("未检测到方剂名称参数（URL 需要 ?name=四君子汤）");
         setStatus("");
         return;
       }
 
-      setStatus(`正在加载 ${name} ...`);
+      setStatus(`正在加载：${name}`);
       setError("");
+      await checkConnections();
 
+      let result;
       try {
-        const resp = await fetch(`${API_BASE}/api/formula_full`, {
+        result = await fetchJsonWithTimeout(`${API_BASE}/api/formula_full`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: name })
-        });
-        const data = await resp.json();
-
-        if (!data?.ok) {
-          setError(data?.error || data?.reason || "请求失败");
-          setStatus("加载失败");
-          return;
-        }
-
-        t("formulaName", data.name || name);
-        t("summary", data.summary || "-");
-        t("source", data.source || "-");
-        t("roles", data.jun_chen_zuo_shi_analysis || "-");
-        t("efficacy", data.efficacy_and_indications || data.efficacy || data.indications || "-");
-        t("syndrome", data.applicable_syndromes || data.syndrome_points || "-");
-        t("mods", data.modifications || "-");
-        t("modern", data.modern_research || data.modern_hint || "-");
-        t("roleStory", data.role_story || "-");
-        t("formulaStory", data.formula_story || "-");
-
-        const items = Array.isArray(data.composition_items) ? data.composition_items : [];
-        renderComposition(items, data.composition || []);
-        renderHerbLinks(items);
-        renderGraph(data.name || name, items);
-        renderPie(items);
-
-        setStatus(`已完成 ${name} 的讲解`);
-      } catch (err) {
-        setError("请求异常：" + err.message);
+        }, 15000);
+      } catch (e) {
+        setError(`请求失败：${e.message}`);
         setStatus("加载失败");
+        return;
       }
-    }
 
-    window.addEventListener("resize", () => {
-      graphChart.resize();
-      pieChart.resize();
-    });
+      const data = result.data || {};
+      if (!result.ok || !data.ok) {
+        const backendErr = data.error || data.reason || `HTTP ${result.status}`;
+        setError(`后端返回错误：${backendErr}`);
+        setStatus("加载失败（请确认 API 8010 是否启动，以及向量模型路径是否可用）");
+        return;
+      }
+
+      setText("formulaName", data.name || name);
+      setText("summary", data.summary || "-");
+      setText("source", data.source || "-");
+      setText("roles", data.jun_chen_zuo_shi_analysis || "-");
+      setText("efficacy", data.efficacy_and_indications || data.efficacy || data.indications || "-");
+      setText("syndrome", data.applicable_syndromes || data.syndrome_points || "-");
+      setText("mods", data.modifications || "-");
+      setText("modern", data.modern_research || data.modern_hint || "-");
+      setText("roleStory", data.role_story || "-");
+      setText("formulaStory", data.formula_story || "-");
+
+      const items = Array.isArray(data.composition_items) ? data.composition_items : [];
+      renderComposition(items, data.composition || []);
+      renderHerbLinks(items);
+      renderCharts(data.name || name, items);
+
+      setStatus(`加载完成：${name}`);
+    }
 
     loadFormula();
   </script>
