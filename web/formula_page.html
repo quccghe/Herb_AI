@@ -142,6 +142,53 @@
       return m ? Number(m[1]) : 1;
     }
 
+    function hasUsefulFormulaData(d) {
+      if (!d || typeof d !== "object") return false;
+      const fields = [
+        d.source,
+        d.efficacy_and_indications,
+        d.applicable_syndromes,
+        d.modifications,
+        d.modern_research,
+        d.role_story,
+        d.formula_story,
+      ];
+      const textOk = fields.some(x => x && String(x).trim() && String(x).trim() !== "-");
+      const compItemsOk = Array.isArray(d.composition_items) && d.composition_items.some(x => x && x.name);
+      const compTextOk = Array.isArray(d.composition) && d.composition.length > 0;
+      return textOk || compItemsOk || compTextOk;
+    }
+
+    async function getMcpFormulaFallback(name) {
+      return fetchJsonWithTimeout(`${MCP_BASE}/tools/formula_fallback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name })
+      }, 10000).catch(e => ({ ok:false, data:{error:e.message} }));
+    }
+
+    function mergeFormulaData(primary, fallback) {
+      if (!primary || typeof primary !== "object") return fallback || {};
+      if (!fallback || typeof fallback !== "object") return primary;
+      const merged = { ...fallback, ...primary };
+      const keys = [
+        "summary", "source", "jun_chen_zuo_shi_analysis", "efficacy_and_indications",
+        "applicable_syndromes", "modifications", "modern_research", "role_story", "formula_story"
+      ];
+      for (const k of keys) {
+        const v = primary[k];
+        if (!v || !String(v).trim()) merged[k] = fallback[k] || "";
+      }
+      if (!(Array.isArray(primary.composition_items) && primary.composition_items.length)) {
+        merged.composition_items = Array.isArray(fallback.composition_items) ? fallback.composition_items : [];
+      }
+      if (!(Array.isArray(primary.composition) && primary.composition.length)) {
+        merged.composition = Array.isArray(fallback.composition) ? fallback.composition : [];
+      }
+      merged._data_source = (hasUsefulFormulaData(primary) ? "主服务+MCP补全" : "MCP降级")
+      return merged;
+    }
+
     function renderHerbLinks(items) {
       const box = document.getElementById("herbLinks");
       box.innerHTML = "";
@@ -251,24 +298,33 @@
       }
 
       let data = result.data || {};
-      if (!result.ok || !data.ok) {
+      const mainOk = result.ok && data && data.ok;
+
+      if (!mainOk) {
         const backendErr = data.error || data.reason || `HTTP ${result.status}`;
-        setError(`主服务失败，已尝试MCP降级：${backendErr}`);
-
-        const fb = await fetchJsonWithTimeout(`${MCP_BASE}/tools/formula_fallback`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name })
-        }, 10000).catch(e => ({ ok:false, data:{error:e.message} }));
-
+        const fb = await getMcpFormulaFallback(name);
         if (fb.ok && fb.data && fb.data.ok) {
           data = fb.data;
+          data._data_source = "MCP降级";
           setStatus(`已切换MCP降级数据：${name}`);
+          setError(`主服务失败，已使用MCP：${backendErr}`);
         } else {
           const fbErr = (fb.data && (fb.data.error || fb.data.reason)) || "MCP fallback failed";
           setError(`主服务失败：${backendErr}；MCP降级也失败：${fbErr}`);
           setStatus("加载失败（请确认 API 8010、MCP 8001 与模型配置）");
           return;
+        }
+      } else {
+        // 主服务可用但字段为空时，也调用 MCP 补全，避免页面出现大量“-”
+        const needPatch = !hasUsefulFormulaData(data);
+        const fb = await getMcpFormulaFallback(name);
+        if (fb.ok && fb.data && fb.data.ok) {
+          data = mergeFormulaData(data, fb.data);
+          if (needPatch) {
+            setStatus(`主服务字段不足，已使用MCP补全：${name}`);
+          }
+        } else {
+          data._data_source = "主服务";
         }
       }
 
@@ -288,7 +344,8 @@
       renderHerbLinks(items);
       renderCharts(data.name || name, items);
 
-      setStatus(`加载完成：${name}`);
+      const src = data._data_source || "主服务";
+      setStatus(`加载完成：${name}（数据源：${src}）`);
     }
 
     loadFormula();
