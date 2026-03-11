@@ -167,6 +167,15 @@ class MCPClient:
         except Exception:
             return {"ok": False, "status_code": r.status_code, "raw": r.text[:500]}
 
+
+    def formula_write_json(self, name: str, card_data: Dict[str, Any]) -> Dict[str, Any]:
+        payload = {"name": name, "card_data": card_data}
+        r = requests.post(f"{self.base_url}/tools/formula_write_json", json=payload, timeout=20)
+        try:
+            return r.json()
+        except Exception:
+            return {"ok": False, "status_code": r.status_code, "raw": r.text[:500]}
+
     def wan_text_to_image(
         self,
         prompt: str,
