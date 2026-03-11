@@ -177,6 +177,20 @@
       }, 30000).catch(e => ({ ok:false, data:{error:e.message} }));
     }
 
+    async function getLocalFormulaJson(name) {
+      const safeName = encodeURIComponent(name || "");
+      return fetchJsonWithTimeout(`/assets/formula_cards/${safeName}/card.json`, {}, 3000)
+        .catch(e => ({ ok:false, data:{error:e.message} }));
+    }
+
+    async function saveFormulaJsonByMcp(name, cardData) {
+      return fetchJsonWithTimeout(`${MCP_BASE}/tools/formula_write_json`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, card_data: cardData })
+      }, 10000).catch(e => ({ ok:false, data:{error:e.message} }));
+    }
+
     function mergeFormulaData(primary, fallback) {
       if (!primary || typeof primary !== "object") return fallback || {};
       if (!fallback || typeof fallback !== "object") return primary;
@@ -317,6 +331,30 @@
 
       setStatus(`正在加载：${name}`);
       setError("");
+
+      const localJson = await getLocalFormulaJson(name);
+      if (localJson.ok && localJson.data && localJson.data.ok) {
+        const localData = localJson.data;
+        localData._data_source = "本地JSON缓存";
+        setText("formulaName", localData.name || name);
+        setText("summary", localData.summary || "-");
+        setText("source", localData.source || "-");
+        setText("roles", localData.jun_chen_zuo_shi_analysis || "-");
+        setText("efficacy", localData.efficacy_and_indications || localData.efficacy || localData.indications || "-");
+        setText("syndrome", localData.applicable_syndromes || localData.syndrome_points || "-");
+        setText("mods", localData.modifications || "-");
+        setText("modern", localData.modern_research || localData.modern_hint || "-");
+        setText("roleStory", localData.role_story || "-");
+        setText("formulaStory", localData.formula_story || "-");
+        setText("storySource", `故事来源：${(localData.story_source === "llm") ? "大模型生成(Qwen)" : "模板生成"}`);
+        const localItems = Array.isArray(localData.composition_items) ? localData.composition_items : [];
+        renderComposition(localItems, localData.composition || []);
+        renderHerbLinks(localItems);
+        renderCharts(localData.name || name, localItems);
+        setStatus(`加载完成：${name}（数据源：本地JSON缓存）`);
+        return;
+      }
+
       await checkConnections();
 
       let result;
@@ -397,6 +435,11 @@
       renderComposition(items, data.composition || []);
       renderHerbLinks(items);
       renderCharts(data.name || name, items);
+
+      const saveRet = await saveFormulaJsonByMcp(name, data);
+      if (saveRet.ok && saveRet.data && saveRet.data.ok) {
+        data.card_json_url = saveRet.data.web_path || "";
+      }
 
       const src = data._data_source || "主服务";
       const ssrc = (data.story_source === "llm") ? "大模型" : "模板";

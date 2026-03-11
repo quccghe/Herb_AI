@@ -68,7 +68,20 @@ class Orchestrator:
         return self.run_herb(user_input)
 
     def run_formula(self, query: str):
-        return self.formula_agent.run(query)
+        data = self.formula_agent.run(query)
+        if data.get("ok"):
+            try:
+                write_ret = self.mcp.formula_write_json(query, data)
+                if write_ret.get("ok"):
+                    data["card_json_url"] = write_ret.get("web_path", "")
+                    data["card_json_saved"] = True
+                else:
+                    data["card_json_saved"] = False
+                    data["card_json_error"] = write_ret.get("error") or write_ret.get("raw")
+            except Exception as e:
+                data["card_json_saved"] = False
+                data["card_json_error"] = str(e)
+        return data
 
 
     def run_herb(self, user_input: str) -> Dict[str, Any]:

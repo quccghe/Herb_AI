@@ -40,6 +40,7 @@ from mcp_server.tools.kg_graph_tools import (
 from mcp_server.tools.wan_image_tools import tool_wan_text_to_image
 from mcp_server.tools.formula_tools import tool_formula_fallback, tool_formula_story_refine
 from mcp_server.tools.formula_llm_tools import tool_formula_card_llm, tool_formula_story_llm
+from mcp_server.tools.formula_storage_tools import tool_formula_write_json
 
 DEFAULT_TARGET_MODEL = "qwen3-tts-vd-realtime-2026-01-15"
 
@@ -267,4 +268,17 @@ def formula_story_llm(req: FormulaStoryLLMReq):
         efficacy_and_indications=req.efficacy_and_indications,
         applicable_syndromes=req.applicable_syndromes,
         source=req.source,
+    )
+
+
+class FormulaWriteJsonReq(BaseModel):
+    name: str
+    card_data: dict
+
+
+@app.post("/tools/formula_write_json")
+def formula_write_json(req: FormulaWriteJsonReq):
+    return tool_formula_write_json(
+        name=req.name,
+        card_data=req.card_data,
     )
