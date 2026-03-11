@@ -179,13 +179,17 @@
 
         const data = await resp.json();
 
-        if (data.intent === "formula") {
+        const intent = data.intent || "herb";
+        const targetPage = data.target_page || (intent === "formula" ? "formula_page.html" : "herb_page.html");
+        const finalQuery = data.normalized_query || q;
+
+        if (intent === "formula") {
           status.innerText = "已识别为方剂，正在跳转...";
-          window.location.href = `formula_page.html?name=${encodeURIComponent(q)}`;
         } else {
           status.innerText = "已识别为中药，正在跳转...";
-          window.location.href = `herb_page.html?name=${encodeURIComponent(q)}`;
         }
+
+        window.location.href = `${targetPage}?name=${encodeURIComponent(finalQuery)}`;
       } catch (err) {
         status.innerText = "请求失败：" + err.message;
       }
