@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -14,27 +13,19 @@
     .title { margin: 0; font-size: 30px; }
     .sub { color:#667085; margin-top: 6px; line-height: 1.7; }
     .back { color:#1677ff; text-decoration:none; font-size:14px; margin-top: 10px; }
-
     .panel { background:#fff; border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,.06); padding:16px 18px; margin-bottom:14px; }
     .status { color:#344054; min-height:24px; }
     .error { color:#b42318; min-height:24px; }
-    .ok { color:#027a48; }
-    .warn { color:#b54708; }
-
+    .note { color:#b54708; min-height:24px; }
     .grid { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
     .item { background:#fafbfc; border:1px solid #e9edf2; border-radius:12px; padding:12px; }
     .full { grid-column: span 2; }
     .label { font-size:12px; color:#667085; margin-bottom:6px; }
     .value { line-height:1.85; white-space:pre-wrap; }
-
     .chips { margin-top: 8px; }
     .chip { display:inline-block; margin:4px 8px 4px 0; padding:4px 10px; border-radius:999px; background:#eef4ff; color:#1d4ed8; cursor:pointer; border:1px solid #dbe7ff; }
-
     .viz-grid { display:grid; grid-template-columns: 2fr 1fr; gap:14px; }
     #compatGraph, #ratioChart { height: 460px; }
-    .viz-fallback { color:#667085; font-size:13px; padding:8px 4px; }
-
-    .story-wrap { background: linear-gradient(135deg,#fff7ed,#eff6ff); border:1px solid #fde6c8; }
   </style>
 </head>
 <body>
@@ -49,8 +40,8 @@
 
     <div class="panel">
       <div id="status" class="status">正在加载...</div>
-      <div id="conn" class="status"></div>
       <div id="error" class="error"></div>
+      <div id="note" class="note"></div>
     </div>
 
     <div class="panel">
@@ -68,135 +59,46 @@
         <div class="item"><div class="label">5️⃣ 适用证候</div><div id="syndrome" class="value">-</div></div>
         <div class="item"><div class="label">6️⃣ 加减应用</div><div id="mods" class="value">-</div></div>
         <div class="item full"><div class="label">7️⃣ 现代研究</div><div id="modern" class="value">-</div></div>
+        <div class="item"><div class="label">8️⃣ 用法用量</div><div id="dosageUsage" class="value">-</div></div>
+        <div class="item"><div class="label">9️⃣ 注意事项</div><div id="cautions" class="value">-</div></div>
       </div>
     </div>
 
     <div class="panel">
       <div class="viz-grid">
         <div class="item">
-          <div class="label">方剂配伍图（方剂居中，药物环绕）</div>
+          <div class="label">方剂配伍图</div>
           <div id="compatGraph"></div>
-          <div id="graphFallback" class="viz-fallback"></div>
         </div>
         <div class="item">
           <div class="label">剂量与组成比例</div>
           <div id="ratioChart"></div>
-          <div id="pieFallback" class="viz-fallback"></div>
         </div>
       </div>
     </div>
 
-    <div class="panel story-wrap">
+    <div class="panel">
       <div class="grid">
-        <div class="item"><div class="label">方剂配伍小故事（君臣佐使）</div><div id="roleStory" class="value">-</div></div>
-        <div class="item"><div class="label">方剂故事化讲解</div><div id="formulaStory" class="value">-</div>
-          <div id="storySource" class="viz-fallback"></div></div>
+        <div class="item"><div class="label">方剂配伍小故事</div><div id="roleStory" class="value">-</div></div>
+        <div class="item"><div class="label">方剂故事化讲解</div><div id="formulaStory" class="value">-</div></div>
       </div>
+    </div>
+
+    <div class="panel">
+      <div class="label">检索证据</div>
+      <div id="evidence" class="value">-</div>
     </div>
   </div>
 
   <script>
     const API_BASE = "http://127.0.0.1:8010";
-    const MCP_BASE = "http://127.0.0.1:8001";
 
     function getQueryName() {
       return new URLSearchParams(window.location.search).get("name") || "";
     }
+
     function setText(id, val) {
       document.getElementById(id).innerText = (val && String(val).trim()) ? String(val) : "-";
-    }
-    function setStatus(s) { document.getElementById("status").innerText = s || ""; }
-    function setError(s) { document.getElementById("error").innerText = s || ""; }
-    function setConn(s, cls = "") {
-      const el = document.getElementById("conn");
-      el.className = `status ${cls}`.trim();
-      el.innerText = s || "";
-    }
-
-    async function fetchJsonWithTimeout(url, options = {}, timeoutMs = 12000) {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), timeoutMs);
-      try {
-        const resp = await fetch(url, { ...options, signal: ctrl.signal });
-        const text = await resp.text();
-        let data = {};
-        try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
-        return { ok: resp.ok, status: resp.status, data };
-      } finally {
-        clearTimeout(t);
-      }
-    }
-
-    async function checkConnections() {
-      const [apiHealth, mcpHealth] = await Promise.all([
-        fetchJsonWithTimeout(`${API_BASE}/health`, {}, 5000).catch(e => ({ ok:false, data:{error:e.message} })),
-        fetchJsonWithTimeout(`${MCP_BASE}/health`, {}, 5000).catch(e => ({ ok:false, data:{error:e.message} })),
-      ]);
-
-      const apiMsg = apiHealth.ok ? "API:可用" : "API:不可用";
-      const mcpMsg = mcpHealth.ok ? "MCP:可用" : "MCP:不可用";
-      const cls = (apiHealth.ok && mcpHealth.ok) ? "ok" : "warn";
-      setConn(`${apiMsg} | ${mcpMsg}`, cls);
-    }
-
-    function numFromDose(dose) {
-      const m = String(dose || "").match(/(\d+(?:\.\d+)?)/);
-      return m ? Number(m[1]) : 1;
-    }
-
-    function hasUsefulFormulaData(d) {
-      if (!d || typeof d !== "object") return false;
-      const fields = [
-        d.source,
-        d.efficacy_and_indications,
-        d.applicable_syndromes,
-        d.modifications,
-        d.modern_research,
-        d.role_story,
-        d.formula_story,
-      ];
-      const textOk = fields.some(x => x && String(x).trim() && String(x).trim() !== "-");
-      const compItemsOk = Array.isArray(d.composition_items) && d.composition_items.some(x => x && x.name);
-      const compTextOk = Array.isArray(d.composition) && d.composition.length > 0;
-      return textOk || compItemsOk || compTextOk;
-    }
-
-    async function getMcpFormulaFallback(name) {
-      return fetchJsonWithTimeout(`${MCP_BASE}/tools/formula_fallback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name })
-      }, 10000).catch(e => ({ ok:false, data:{error:e.message} }));
-    }
-
-    async function getMcpFormulaCardLLM(name) {
-      return fetchJsonWithTimeout(`${MCP_BASE}/tools/formula_card_llm`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, topk: 12, min_rag_score: 0.28 })
-      }, 30000).catch(e => ({ ok:false, data:{error:e.message} }));
-    }
-
-    function mergeFormulaData(primary, fallback) {
-      if (!primary || typeof primary !== "object") return fallback || {};
-      if (!fallback || typeof fallback !== "object") return primary;
-      const merged = { ...fallback, ...primary };
-      const keys = [
-        "summary", "source", "jun_chen_zuo_shi_analysis", "efficacy_and_indications",
-        "applicable_syndromes", "modifications", "modern_research", "role_story", "formula_story"
-      ];
-      for (const k of keys) {
-        const v = primary[k];
-        if (!v || !String(v).trim()) merged[k] = fallback[k] || "";
-      }
-      if (!(Array.isArray(primary.composition_items) && primary.composition_items.length)) {
-        merged.composition_items = Array.isArray(fallback.composition_items) ? fallback.composition_items : [];
-      }
-      if (!(Array.isArray(primary.composition) && primary.composition.length)) {
-        merged.composition = Array.isArray(fallback.composition) ? fallback.composition : [];
-      }
-      merged._data_source = (hasUsefulFormulaData(primary) ? "主服务+MCP补全" : "MCP降级")
-      return merged;
     }
 
     function renderHerbLinks(items) {
@@ -212,53 +114,20 @@
         const span = document.createElement("span");
         span.className = "chip";
         span.innerText = `${it.name}${it.dose ? `（${it.dose}）` : ""}`;
-        span.onclick = () => { window.location.href = `herb_page.html?name=${encodeURIComponent(it.name)}`; };
+        span.onclick = () => {
+          window.location.href = `herb_page.html?name=${encodeURIComponent(it.name)}`;
+        };
         box.appendChild(span);
       });
     }
 
-    function renderComposition(items, compositionTextList) {
-      if (items && items.length) {
-        setText("composition", items.map(x => `${x.name}${x.dose ? ` ${x.dose}` : ""}${x.role ? `【${x.role}】` : ""}`).join("、"));
-      } else {
-        setText("composition", (compositionTextList || []).join("、") || "-");
-      }
+    function numFromDose(dose) {
+      const m = String(dose || "").match(/(\d+(?:\.\d+)?)/);
+      return m ? Number(m[1]) : 1;
     }
 
-
-    async function refineStoriesByMcp(data) {
-      const payload = {
-        name: data.name || "",
-        composition_items: Array.isArray(data.composition_items) ? data.composition_items : [],
-        efficacy_and_indications: data.efficacy_and_indications || data.efficacy || data.indications || "",
-        applicable_syndromes: data.applicable_syndromes || data.syndrome_points || "",
-        source: data.source || "",
-      };
-
-      const r = await fetchJsonWithTimeout(`${MCP_BASE}/tools/formula_story_llm`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      }, 15000).catch(e => ({ ok:false, data:{error:e.message} }));
-
-      if (r.ok && r.data && r.data.ok) {
-        data.role_story = r.data.role_story || data.role_story;
-        data.formula_story = r.data.formula_story || data.formula_story;
-        data.story_source = r.data.story_source || data.story_source || "template";
-      }
-      return data;
-    }
     function renderCharts(name, items) {
-      const graphFallback = document.getElementById("graphFallback");
-      const pieFallback = document.getElementById("pieFallback");
-      graphFallback.innerText = "";
-      pieFallback.innerText = "";
-
-      if (!window.echarts) {
-        graphFallback.innerText = "图表库加载失败（CDN不可达），已展示文本信息。";
-        pieFallback.innerText = "图表库加载失败（CDN不可达），已展示文本信息。";
-        return;
-      }
+      if (!window.echarts) return;
 
       const graphChart = echarts.init(document.getElementById("compatGraph"));
       const pieChart = echarts.init(document.getElementById("ratioChart"));
@@ -293,114 +162,71 @@
         }]
       });
 
-      const pieData = (items || []).map(x => ({ name: x.name, value: Number(x.weight || 0) || numFromDose(x.dose) }));
-      if (pieData.length) {
-        pieChart.setOption({
-          tooltip: { trigger: "item" },
-          legend: { bottom: 0 },
-          series: [{ type: "pie", radius: ["34%", "66%"], roseType: "area", data: pieData }]
-        });
-      } else {
-        pieFallback.innerText = "暂无可解析剂量，未绘制比例图。";
-      }
+      const pieData = (items || []).map(x => ({
+        name: x.name,
+        value: Number(x.weight || 0) || numFromDose(x.dose)
+      }));
 
-      window.addEventListener("resize", () => { graphChart.resize(); pieChart.resize(); });
+      pieChart.setOption({
+        tooltip: { trigger: "item" },
+        legend: { bottom: 0 },
+        series: [{ type: "pie", radius: ["34%", "66%"], roseType: "area", data: pieData }]
+      });
     }
 
     async function loadFormula() {
       const name = getQueryName();
       if (!name) {
-        setError("未检测到方剂名称参数（URL 需要 ?name=四君子汤）");
-        setStatus("");
+        document.getElementById("error").innerText = "未检测到方剂名称参数";
+        document.getElementById("status").innerText = "";
         return;
       }
 
-      setStatus(`正在加载：${name}`);
-      setError("");
-      await checkConnections();
+      document.getElementById("status").innerText = `正在加载：${name}`;
+      document.getElementById("error").innerText = "";
+      document.getElementById("note").innerText = "";
 
-      let result;
       try {
-        result = await fetchJsonWithTimeout(`${API_BASE}/api/formula_full`, {
+        const resp = await fetch(`${API_BASE}/api/formula_full`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: name })
-        }, 60000);
-      } catch (e) {
-        result = { ok: false, status: 0, data: { error: e.message || "network error" } };
-      }
+        });
 
-      let data = result.data || {};
-      const mainOk = result.ok && data && data.ok;
+        const data = await resp.json();
 
-      if (!mainOk) {
-        const backendErr = data.error || data.reason || `HTTP ${result.status}`;
-
-        const cardLlm = await getMcpFormulaCardLLM(name);
-        if (cardLlm.ok && cardLlm.data && cardLlm.data.ok) {
-          data = cardLlm.data;
-          data._data_source = "MCP大模型方剂卡";
-          setStatus(`已切换MCP大模型方剂卡：${name}`);
-          setError(`主服务失败，已使用MCP大模型：${backendErr}`);
-        } else {
-          const fb = await getMcpFormulaFallback(name);
-          if (fb.ok && fb.data && fb.data.ok) {
-            data = fb.data;
-            data._data_source = "MCP降级";
-            setStatus(`已切换MCP降级数据：${name}`);
-            setError(`主服务失败，已使用MCP降级：${backendErr}`);
-          } else {
-            const cardErr = (cardLlm.data && (cardLlm.data.error || cardLlm.data.reason)) || "MCP formula_card_llm failed";
-            const fbErr = (fb.data && (fb.data.error || fb.data.reason)) || "MCP fallback failed";
-            setError(`主服务失败：${backendErr}；MCP方剂卡失败：${cardErr}；MCP降级也失败：${fbErr}`);
-            setStatus("加载失败（请确认 API 8010、MCP 8001 与模型配置）");
-            return;
-          }
+        if (!data.ok) {
+          document.getElementById("error").innerText = data.error || data.reason || "请求失败";
+          document.getElementById("status").innerText = "加载失败";
+          return;
         }
-      } else {
-        // 主服务可用但字段为空时，也调用 MCP 补全，避免页面出现大量“-”
-        const needPatch = !hasUsefulFormulaData(data);
-        const cardLlm = await getMcpFormulaCardLLM(name);
-        if (cardLlm.ok && cardLlm.data && cardLlm.data.ok) {
-          data = mergeFormulaData(data, cardLlm.data);
-          if (needPatch) {
-            setStatus(`主服务字段不足，已使用MCP大模型补全：${name}`);
-          }
-        } else {
-          const fb = await getMcpFormulaFallback(name);
-          if (fb.ok && fb.data && fb.data.ok) {
-            data = mergeFormulaData(data, fb.data);
-            if (needPatch) {
-              setStatus(`主服务字段不足，已使用MCP降级补全：${name}`);
-            }
-          } else {
-            data._data_source = "主服务";
-          }
-        }
+
+        setText("formulaName", data.name || name);
+        setText("summary", data.summary || "-");
+        setText("source", data.source || "-");
+        setText("composition", (data.composition || []).join("、"));
+        setText("roles", data.jun_chen_zuo_shi_analysis || "-");
+        setText("efficacy", data.efficacy_and_indications || "-");
+        setText("syndrome", data.applicable_syndromes || "-");
+        setText("mods", data.modifications || "-");
+        setText("modern", data.modern_research || "-");
+        setText("dosageUsage", data.dosage_usage || "-");
+        setText("cautions", data.cautions || "-");
+        setText("roleStory", data.role_story || "-");
+        setText("formulaStory", data.formula_story || "-");
+        setText("evidence", data.evidence || "-");
+        document.getElementById("note").innerText =
+          `${data.note || ""}${data.story_source ? ` | 故事来源：${data.story_source === "llm" ? "大模型生成" : "规则生成"}` : ""}`;
+
+        const items = Array.isArray(data.composition_items) ? data.composition_items : [];
+        renderHerbLinks(items);
+        renderCharts(data.name || name, items);
+
+        document.getElementById("status").innerText = `加载完成：${name}`;
+      } catch (err) {
+        document.getElementById("error").innerText = err.message;
+        document.getElementById("status").innerText = "加载失败";
       }
-
-      setText("formulaName", data.name || name);
-      setText("summary", data.summary || "-");
-      data = await refineStoriesByMcp(data);
-
-      setText("source", data.source || "-");
-      setText("roles", data.jun_chen_zuo_shi_analysis || "-");
-      setText("efficacy", data.efficacy_and_indications || data.efficacy || data.indications || "-");
-      setText("syndrome", data.applicable_syndromes || data.syndrome_points || "-");
-      setText("mods", data.modifications || "-");
-      setText("modern", data.modern_research || data.modern_hint || "-");
-      setText("roleStory", data.role_story || "-");
-      setText("formulaStory", data.formula_story || "-");
-      setText("storySource", `故事来源：${(data.story_source === "llm") ? "大模型生成(Qwen)" : "模板生成"}`);
-
-      const items = Array.isArray(data.composition_items) ? data.composition_items : [];
-      renderComposition(items, data.composition || []);
-      renderHerbLinks(items);
-      renderCharts(data.name || name, items);
-
-      const src = data._data_source || "主服务";
-      const ssrc = (data.story_source === "llm") ? "大模型" : "模板";
-      setStatus(`加载完成：${name}（数据源：${src}，故事：${ssrc}）`);
     }
 
     loadFormula();

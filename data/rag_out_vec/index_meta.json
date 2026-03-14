@@ -2,7 +2,7 @@
   "embedding_model": "G:\\models\\bge-small-zh-v1.5",
   "model": "G:\\models\\bge-small-zh-v1.5",
   "space": "cosine",
-  "n": 21772,
+  "n": 22615,
   "dim": 512,
   "chunks_in": "rag_out_clean/chunks_clean.jsonl",
   "chunks_out": "rag_out_vec\\chunks_vec.jsonl",

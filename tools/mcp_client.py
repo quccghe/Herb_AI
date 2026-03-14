@@ -6,16 +6,10 @@ import uuid
 
 
 def save_audio_file(audio_base64: str, save_path: str) -> str:
-    """
-    将 base64 音频保存为 wav 文件
-    """
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
     audio_bytes = base64.b64decode(audio_base64)
-
     with open(save_path, "wb") as f:
         f.write(audio_bytes)
-
     return save_path
 
 
@@ -162,6 +156,57 @@ class MCPClient:
     def kg_graph_summary(self, name: str) -> Dict[str, Any]:
         payload = {"name": name}
         r = requests.post(f"{self.base_url}/tools/kg_graph_summary", json=payload, timeout=30)
+        try:
+            return r.json()
+        except Exception:
+            return {"ok": False, "status_code": r.status_code, "raw": r.text[:500]}
+
+    def formula_write_json(self, name: str, card_data: Dict[str, Any]) -> Dict[str, Any]:
+        payload = {"name": name, "card_data": card_data}
+        r = requests.post(f"{self.base_url}/tools/formula_write_json", json=payload, timeout=20)
+        try:
+            return r.json()
+        except Exception:
+            return {"ok": False, "status_code": r.status_code, "raw": r.text[:500]}
+
+    def formula_card_llm(self, name: str, vec_dir: Optional[str] = None, topk: int = 12,
+                         min_rag_score: float = 0.28) -> Dict[str, Any]:
+        payload = {
+            "name": name,
+            "vec_dir": vec_dir,
+            "topk": topk,
+            "min_rag_score": min_rag_score,
+        }
+        r = requests.post(f"{self.base_url}/tools/formula_card_llm", json=payload, timeout=30)
+        try:
+            return r.json()
+        except Exception:
+            return {"ok": False, "status_code": r.status_code, "raw": r.text[:500]}
+
+    def formula_fallback(self, name: str) -> Dict[str, Any]:
+        payload = {"name": name}
+        r = requests.post(f"{self.base_url}/tools/formula_fallback", json=payload, timeout=20)
+        try:
+            return r.json()
+        except Exception:
+            return {"ok": False, "status_code": r.status_code, "raw": r.text[:500]}
+
+    def formula_story_llm(
+        self,
+        name: str,
+        composition_items: Optional[List[dict]] = None,
+        efficacy_and_indications: str = "",
+        applicable_syndromes: str = "",
+        source: str = "",
+    ) -> Dict[str, Any]:
+        payload = {
+            "name": name,
+            "composition_items": composition_items or [],
+            "efficacy_and_indications": efficacy_and_indications,
+            "applicable_syndromes": applicable_syndromes,
+            "source": source,
+        }
+        r = requests.post(f"{self.base_url}/tools/formula_story_llm", json=payload, timeout=20)
         try:
             return r.json()
         except Exception:
